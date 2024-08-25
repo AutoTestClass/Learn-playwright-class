@@ -28,6 +28,8 @@ v18.20.3
 
 - [x] playwright
 
+* 初始化项目
+
 ```shell
 > npm init playwright@latest
 
@@ -84,28 +86,7 @@ Webkit 18.0 (playwright build v2051) downloaded to C:\Users\fnngj\AppData\Local\
 ..
 ```
 
-使用命令：
-
-```shell
-
-Inside that directory, you can run several commands:
-
-
-We suggest that you begin by typing:
-
-    npx playwright test
-
-And check out the following files:
-  - .\tests\example.spec.ts - Example end-to-end test
-  - .\tests-examples\demo-todo-app.spec.ts - Demo Todo App end-to-end tests
-  - .\playwright.config.ts - Playwright Test configuration
-
-Visit https://playwright.dev/docs/intro for more information. ✨
-
-Happy hacking! 🎭
-```
-
-### 测试用例分析
+### 测试用例
 
 * 目录结构：
 
@@ -142,19 +123,20 @@ test('get started link', async ({ page }) => {
 
 ### 运行测试
 
-进入项目`js_project\`目录，通过下面的命令运行测试。
+进入项目`project\`目录，通过下面的命令运行测试。
 
 * 运行命令
 
 ```shell
-$ npx playwright test Runs the end-to-end tests. # 运行 e2e测试
-$ npx playwright test --ui     Starts the interactive UI mode.  # 启动交互式UI模式
-$ npx playwright test --project=chromium     Runs the tests only on Desktop Chrome. # 运行在桌面Chromium上的测试
-$ npx playwright test example     Runs the tests in a specific file. # 运行指定文件的测试
-$ npx playwright test --debug     Runs the tests in debug mode.  # 运行在调试模式下
-$ npx playwright codegen     Auto generate tests with Codegen. # 自动生成测试代码
+$ npx playwright test  # 运行 e2e测试
+$ npx playwright test --ui     # 启动交互式UI模式
+$ npx playwright test --project=chromium   # 运行在桌面Chromium上的测试
+$ npx playwright test example      # 运行指定文件的测试
+$ npx playwright test --debug      # 运行在调试模式下
+$ npx playwright codegen      # 自动生成测试代码
 ```
 
+---
 * 默认`--headless`模式运行
 
 ```shell
@@ -165,34 +147,66 @@ Running 6 tests using 6 workers
 ```
 > /tests/example.spec.ts 里面两条用例三个浏览器分别运行，所以，运行6条测试。
 
-* 指定浏览器运行
-
-```shell
-npx playwright test --project=chromium
-
-Running 2 tests using 2 workers
-...
-```
-> 指定 chromium 浏览器，headed模式运行，运行2条测试。
+---
 
 * 指定`--headed`模式运行
 
 ```shell
-npx playwright test --headed
+$ npx playwright test --headed
 
 Running 6 tests using 6 workers
 ...
 ```
 > headed模式运行。
 
+---
+* 指定浏览器
+
+```shell
+$ npx playwright test --project=chromium
+$ npx playwright test --project=chromium --project=firefox
+```
+> * 指定 chromium 浏览器。
+> * 指定 chromium 和 firefox 浏览器。
+
+---
+* 指定目录&文件
+
+```shell
+$ npx playwright test tests
+$ npx playwright test example.spec.ts 
+$ npx playwright test example bing
+$ npx playwright test -g "has title"
+```
+> * 指定 tests 目录运行， 
+> * 指定 example.spec.ts 文件名 前面不能根目录。
+> * 模糊 匹配 example  和 bing 文件名。
+> * 指定特定标题 "has title" 的用例
+
+---
+* 运行最近失败的用例
+
+
+```shell
+$ npx playwright test --last-failed
+```
+> 要只运行上次测试中失败的测试，首先运行你的测试，然后再使用 --last-failed 标志重新运行它们。
+
 * 指定`--debug`模式运行
 
 ```shell
 $ npx playwright test --debug
+$ npx playwright test example.spec.ts --debug
+$ npx playwright test example.spec.ts:10 --debug
 ```
 > 启动 plywright Inspector 工具
+> * 默认调试所有用例。
+> * 指定测试文件调试。
+> * 从test(..)所在的行号调试特定的测试。在测试文件名的末尾添加一个冒号，后跟行号，后跟——debug标志。
 
 ![](./images/playwright-debug-running.png)
+
+---
 
 * UI模式运行
 
@@ -203,6 +217,7 @@ $ npx playwright test
 ![](./images/playwright-ui.png)
 
 
+---
 * 查看报告
 
 ```shll
@@ -221,7 +236,7 @@ Serving HTML report at http://127.0.0.1:9323. Press Ctrl+C to quit.
 
 Playwright 测试是简单的，它包含：
 
-- **执行动作**，
+- **执行动作**
 - **断言状态**
 
 在执行动作之前，不需要等待任何东西：Playwright 在执行每个动作之前会自动等待通过广泛的可操作性检查。
@@ -399,7 +414,7 @@ test.describe('navigation', () => {
 ### 录制测试
 
 
-Playwright Codegen 简介
+**Playwright Codegen 简介**
 
 Playwright Codegen（代码生成器）是一个自动生成测试代码的工具，它可以帮助开发者快速编写测试脚本。使用 Codegen，您可以通过录制用户的操作来生成测试代码，这使得编写测试变得更加简单和快捷。
 
