@@ -1,14 +1,14 @@
-## plywright Node.js版
+# plywright（Node.js版）
 
 playwright 支持多种语言：
 
-node.js: https://github.com/microsoft/playwright
-python: https://github.com/microsoft/playwright-python
-.net: https://github.com/microsoft/playwright-dotnet
-java: https://github.com/microsoft/playwright-java
+* node.js: https://github.com/microsoft/playwright
+* Python: https://github.com/microsoft/playwright-python
+* .NET: https://github.com/microsoft/playwright-dotnet
+* Java: https://github.com/microsoft/playwright-java
 
 
-### 安装
+## 安装
 
 - [x] node.js
 
@@ -86,7 +86,7 @@ Webkit 18.0 (playwright build v2051) downloaded to C:\Users\fnngj\AppData\Local\
 ..
 ```
 
-### 测试用例
+## 测试用例
 
 * 目录结构：
 
@@ -121,7 +121,7 @@ test('get started link', async ({ page }) => {
 });
 ```
 
-### 运行测试
+## 运行测试
 
 进入项目`project\`目录，通过下面的命令运行测试。
 
@@ -231,60 +231,383 @@ Serving HTML report at http://127.0.0.1:9323. Press Ctrl+C to quit.
 ![](./images/playwright_report.png)
 
 
-### 编写测试
+## 编写基本测试
 
-
-Playwright 测试是简单的，它包含：
-
+Playwright测试是简单的，一个完整的测试它包含以下部分：
+ 
+- **导航**
+- **元素定位**
 - **执行动作**
 - **断言状态**
 
-在执行动作之前，不需要等待任何东西：Playwright 在执行每个动作之前会自动等待通过广泛的可操作性检查。
-
-在执行检查时也无需处理竞态条件 - Playwright 断言被设计成一种方式，即它们描述了需要最终满足的期望。
-
-就是这样！这些设计选择允许 Playwright 用户完全忘记在测试中的不稳定的超时和种族检查。
-
-**你将学到**
-
-- 如何编写第一个测试
-- 如何执行动作
-- 如何使用断言
-- 测试如何在隔离中运行
-- 如何使用测试钩子
-
-#### 第一个测试
-
-查看以下示例，了解如何编写测试。
-
-tests/example.spec.ts
+一个简单的示例：
 
 ```typescript
 import { test, expect } from '@playwright/test';
 
-test('有标题', async ({ page }) => {
+test('get started link', async ({ page }) => {
   await page.goto('https://playwright.dev/');
 
-  // 期望标题“包含”一个子串。
-  await expect(page).toHaveTitle(/Playwright/);
-});
-
-test('开始链接', async ({ page }) => {
-  await page.goto('https://playwright.dev/');
-
-  // 点击“开始”链接。
+  // 点击“Get started”链接。
   await page.getByRole('link', { name: 'Get started' }).click();
 
-  // 期望页面有一个名为“安装”的标题。
+  // 期望页面有一个名为“Installation”的标题。
   await expect(page.getByRole('heading', { name: 'Installation' })).toBeVisible();
 });
 ```
 
-注意
+> * 在执行动作之前，不需要等待任何东西：Playwright 在执行每个动作之前会自动等待通过广泛的可操作性检查。
+> * 在执行检查时也无需处理竞态条件 - Playwright 断言被设计成一种方式，即它们描述了需要最终满足的期望。
+> 就是这样！这些设计选择允许 Playwright 用户完全忘记在测试中的不稳定的超时和种族检查。
 
-在每个测试文件的开始处添加`// @ts-check`，以便在使用 VS Code 的 JavaScript 中获得自动类型检查。
 
-#### 动作
+**你将学到**
+
+- 如何编写定位
+- 如何执行动作
+- 如何使用断言
+
+### 定位
+
+
+#### **`page.locator()`**
+
+- 这是 Playwright 中最灵活且常用的元素定位方法。它接受一个 CSS 选择器、XPath 表达式、文本内容等作为参数，用于定位页面上的元素。`page.locator()` 返回的是一个 `Locator` 对象，你可以在该对象上调用各种方法来对元素进行操作，如点击、输入文本等。
+
+> 我们建议优先考虑 用户可见的定位器（如文本或可访问角色），而不是使用与实现相关且可能在页面更改时中断的 CSS。
+
+__CSS 选择器__
+
+Playwright 添加了自定义伪类，如 `:visible`、`:has-text()`、`:has()`、`:is()`、`:nth-match()` 等。
+
+* HTML页面
+
+```html
+<button style='display: none'>Invisible</button>
+<button>Visible</button>
+
+<article> learn Playwright</article>
+
+<article>
+   <div class="promo">
+
+<button>Log in</button>
+
+<div id="nav-bar">
+  <span>Home</span>
+  <span>Learn</span>
+</div>
+
+<button>Login</button>
+<button>log IN</button>
+```
+
+* 定位方法
+  
+```js
+// 匹配页面上的所有<button></button>
+await page.locator('css=button')
+
+// 这将找到两个按钮并抛出 strictness 违规错误：
+await page.locator('button')
+
+// 这只会找到第二个按钮，因为它是可见的
+await page.locator('button:visible')
+
+// 错误，将匹配许多元素，包括<body>
+await page.locator(':has-text("Playwright")').click();
+
+// 这将找到 article 元素，因为它包含文本“Playwright”
+await page.locator('article:has-text("Playwright")')
+
+// 这将找到 article 元素，因为它包含 div.promo 元素
+await page.locator('article:has(div.promo)')
+
+// 符合条件之一的元素
+await page.locator('button:has-text("Log in"), button:has-text("Sign in")')
+
+// 这将在 #nav-bar 元素内的某处找到带有文本 "Home" 的元素
+await page.locator('#nav-bar :text("Home")')
+// 精确匹配区分大小写、修剪空格并搜索完整字符串。
+await page.locator('#nav-bar :text-is("Home")') 
+
+await page.locator('#nav-bar :text-is("Home")') 
+
+// 类似 JavaScript 的正则表达式 匹配的最小元素。
+await page.locator('button :text-matches("Log\s*in", "i")') 
+```
+
+__CSS：还可以根据布局匹配元素。__
+
+```js
+// 匹配文本为 Password 右侧<input></input>
+await page.locator('input:right-of(:text("Password"))')
+
+// 匹配id="promo-card" 附近的<button></button>
+await page.locator('button:near(.promo-card)')
+```
+
+* `:right-of(div > button)` - 匹配与内部选择器匹配的任何元素右侧的元素，在任何垂直位置。
+
+* `:left-of(div > button)` - 匹配位于任何垂直位置的与内部选择器匹配的任何元素左侧的元素。
+
+* `:above(div > button)` - 匹配任何水平位置上与内部选择器匹配的任何元素之上的元素。
+
+* `:below(div > button)` - 匹配任何水平位置上与内部选择器匹配的任何元素下方的元素。
+
+* `:near(div > button)` - 匹配与内部选择器匹配的任何元素附近（50 CSS 像素内）的元素。
+
+__CSS:从查询结果中选择第 n 个匹配项__
+
+* HTML页面
+
+```html
+<section> <button>Buy</button> </section>
+<article><div> <button>Buy</button> </div></article>
+<div><div> <button>Buy</button> </div></div>
+```
+
+* 定位方法
+
+```js
+// 择上面代码片段中的第三个按钮。请注意，索引是基于 1 的
+await page.locator(':nth-match(:text("Buy"), 3)')
+
+//  nth= 定位器将查询范围缩小到第 n 个匹配项, 
+await page.locator('button').locator('nth=0')  // 获取第一个元素
+await page.locator('button').locator('nth=-1') // 获取最后一个元素
+```
+
+__Xpath定位__
+
+```js
+await page.locator('xpath=//button')
+```
+
+任何以 `//` 或 `..` 开头的选择器字符串都被假定为 xpath 选择器。
+
+```js
+await page.locator('//button')
+```
+
+比较复杂的一个xpath定位
+
+```js
+await page.locator(
+    `//span[contains(@class, 'spinner__loading')]|//div[@id='confirmation']`
+)
+```
+
+
+#### **`page.getByRole()`**
+
+- 这个方法基于 ARIA 角色来定位元素。它对于可访问性测试特别有用，允许你根据元素的 ARIA 角色来查找元素，而不是依赖于其 CSS 类名或 ID。这对于动态生成的元素或当元素的 ID 或类名频繁变化时特别有用。
+
+* 定位用法
+
+```js
+await page.getByRole('heading', { name: 'Sign up' })
+
+await page.getByRole('checkbox', { name: 'Subscribe' })
+
+await page.getByRole('button', { name: /submit/i })
+```
+> { name: /submit/i } 指定了一个属性过滤器，它要求被定位的元素必须有一个“name”属性，且该属性的值包含“submit”（不区分大小写，因为使用了正则表达式/submit/i，其中i表示不区分大小写的搜索）。
+
+下面是一个包含Playwright中`page.getByRole()`方法支持的ARIA角色及其简要说明的表格。请注意，这个列表是基于ARIA规范中的角色，并且Playwright通过`getByRole`方法支持这些角色来定位页面上的元素。
+
+
+| 角色               | 说明                                                                                                             |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| `alert`            | 表示一个警告、错误或重要信息，这些信息需要用户立即注意，但不需要用户进行任何操作。                               |
+| `alertdialog`      | 表示一个对话框，它包含了一个或多个警告、错误或重要信息，这些信息需要用户立即注意，并且可能需要用户进行某些操作。 |
+| `application`      | 表示一个独立的、可嵌入的、可重用的UI组件，它可能包含自己的文档结构。                                             |
+| `article`          | 表示文档、页面或应用程序中独立的内容或容器，其内容与文档的其他部分在内容或目的上有所不同。                       |
+| `banner`           | 表示页面的主要标题或介绍性内容。                                                                                 |
+| `blockquote`       | 表示一段长引用。                                                                                                 |
+| `button`           | 表示一个可点击的按钮。                                                                                           |
+| `caption`          | 表示表格的标题或说明。                                                                                           |
+| `cell`             | 表示表格中的一个单元格。                                                                                         |
+| `checkbox`         | 表示一个复选框，用户可以通过它来选择多个选项中的一个或多个。                                                     |
+| `code`             | 表示计算机代码或脚本。                                                                                           |
+| `columnheader`     | 表示表格中一列的标题。                                                                                           |
+| `combobox`         | 表示一个组合框，它允许用户从下拉列表中选择一个值，或者输入一个新的值。                                           |
+| `complementary`    | 表示与页面主要内容互补的内容，但移除这些内容也不会影响页面的主要功能。                                           |
+| `contentinfo`      | 表示页面的版权信息、隐私政策等法律或管理信息。                                                                   |
+| `definition`       | 表示术语的定义。                                                                                                 |
+| `deletion`         | 表示文档中被删除的内容。                                                                                         |
+| `dialog`           | 表示一个对话框或窗口，它要求用户进行交互，以完成某个任务或提供信息。                                             |
+| `directory`        | 表示一个目录列表。                                                                                               |
+| `document`         | 表示一个文档或页面。                                                                                             |
+| `emphasis`         | 表示强调的文本。                                                                                                 |
+| `feed`             | 表示一个Web提要，如RSS或Atom提要。                                                                               |
+| `figure`           | 表示一个自包含的单元，如插图、图表、照片、代码等，这些单元可能包含标题（caption）。                              |
+| `form`             | 表示一个表单，用于收集用户输入。                                                                                 |
+| `generic`          | 一个通用的、未明确分类的角色。                                                                                   |
+| `grid`             | 表示一个网格，用于展示表格数据或布局元素。                                                                       |
+| `gridcell`         | 表示网格中的一个单元格。                                                                                         |
+| `group`            | 表示一组相关的元素，这些元素通常作为单个单元进行交互。                                                           |
+| `heading`          | 表示一个标题，用于组织或导航页面内容。                                                                           |
+| `img`              | 表示一个图像。                                                                                                   |
+| `insertion`        | 表示文档中被插入的内容。                                                                                         |
+| `link`             | 表示一个超链接。                                                                                                 |
+| `list`             | 表示一个列表。                                                                                                   |
+| `listbox`          | 表示一个列表框，用户可以从中选择一个或多个选项。                                                                 |
+| `listitem`         | 表示列表中的一个项目。                                                                                           |
+| `log`              | 表示日志或一系列的用户活动。                                                                                     |
+| `main`             | 表示页面的主要内容。                                                                                             |
+| `marquee`          | 表示一个滚动的文本或图像容器。                                                                                   |
+| `math`             | 表示数学表达式。                                                                                                 |
+| `meter`            | 表示一个标量测量或分数值（通常是一个范围内的值），如磁盘使用情况或测试分数。                                     |
+| `menu`             | 表示一个菜单，它包含了一组用户可以选择的命令或选项。                                                             |
+| `menubar`          | 表示一个菜单栏，它包含了一组菜单项，每个菜单项都打开了一个菜单。                                                 |
+| `menuitem`         | 表示一个菜单项，用户可以选择它来执行一个命令。                                                                   |
+| `menuitemcheckbox` | 表示一个复选框菜单项，用户可以通过它来选择多个选项中的一个或多个。                                               |
+| `menuitemradio`    | 表示一个单选按钮菜单项，用户可以从一组互斥的选项中选择一个。                                                     |
+| `navigation`       | 表示页面上的导航部分。                                                                                           |
+| `none`             | 表示没有角色。                                                                                                   |
+| `note`             | 表示一个注释或注解，它提供了关于另一个元素的额外信息。                                                           |
+| `option`           | 表示一个选项，它是从一组选项中选择的一个元素（如在`<select>`元素中）。                                           |
+| `paragraph`        | 表示一个段落。                                                                                                   |
+| `presentation`     | 表示一个元素，它仅用于呈现，不应被辅助技术识别或读取。                                                           |
+| `progressbar`      | 表示一个进度条，用于显示任务的进度。                                                                             |
+| `radio`            | 表示一个单选按钮，用户可以从一组互斥的选项中选择一个。                                                           |
+| `radiogroup`       | 表示一组单选按钮，这些按钮共享相同的名称属性，因此它们是互斥的。                                                 |
+| `region`           | 表示页面上的一个区域，它包含了一组相关的内容或功能。                                                             |
+| `row`              | 表示表格中的一行。                                                                                               |
+| `rowgroup`         | 表示表格中的一组行，这些行通常具有相同的属性或样式。                                                             |
+| `rowheader`        | 表示表格中一行的标题。                                                                                           |
+| `scrollbar`        | 表示一个滚动条。                                                                                                 |
+| `search`           | 表示一个搜索框或搜索工具。                                                                                       |
+| `searchbox`        | 表示一个搜索框，用户可以在其中输入搜索查询。                                                                     |
+| `separator`        | 表示一个分隔符，用于将内容或控件分组。                                                                           |
+| `slider`           | 表示一个滑块控件，用户可以通过拖动滑块来选择一个值。                                                             |
+| `spinbutton`       | 表示一个旋转按钮控件，用户可以通过点击来增加或减少一个值。                                                       |
+| `status`           | 表示一个状态栏，它提供了关于用户代理（如浏览器）的默认状态信息。                                                 |
+| `strong`           | 表示强调的文本，其重要性高于`emphasis`。                                                                         |
+| `subscript`        | 表示下标文本。                                                                                                   |
+| `superscript`      | 表示上标文本。                                                                                                   |
+| `switch`           | 表示一个开关控件，用户可以在两种状态之间切换（如开/关）。                                                        |
+| `tab`              | 表示一个选项卡，它是选项卡面板中的一个可选项。                                                                   |
+| `table`            | 表示一个表格。                                                                                                   |
+| `tablist`          | 表示一个选项卡列表，它包含了一组选项卡。                                                                         |
+| `tabpanel`         | 表示一个选项卡面板，它是与选项卡列表相关联的内容区域。                                                           |
+| `term`             | 表示术语的定义项。                                                                                               |
+| `textbox`          | 表示一个文本输入框，用户可以在其中输入文本。                                                                     |
+| `time`             | 表示日期、时间或两者。                                                                                           |
+| `timer`            | 表示一个计时器，它显示经过的时间或倒计时。                                                                       |
+| `toolbar`          | 表示一组工具按钮，这些按钮通常与页面上的某个特定功能相关联。                                                     |
+| `tooltip`          | 表示一个工具提示，它提供了关于另一个元素的额外信息。                                                             |
+| `tree`             | 表示一个树形控件，用于展示具有层次结构的数据。                                                                   |
+| `treegrid`         | 表示一个树形网格控件，它结合了树形控件和网格控件的特性。                                                         |
+| `treeitem`         | 表示树形控件或树形网格控件中的一个项目。                                                                         |
+
+请注意，这个列表可能不是完全详尽的，因为ARIA规范可能会随着时间的推移而更新。此外，Playwright的实现可能会根据具体的版本和更新而有所不同。
+
+#### **`page.getByLabel()`**
+- 大多数表单控件通常都有专用标签，可以方便地用于与表单交互。在这种情况下，你可以使用 `page.getByLabel()` 通过其关联标签来定位该控件。
+
+* HTML页面
+
+```html
+<label>Password <input type="password" /></label>
+```
+
+* 定位用法
+
+```js
+await page.getByLabel('Password')
+```
+
+####** `page.getByPlaceholder()`**
+
+- 根据输入框的 placeholder 属性来定位元素。这对于那些具有占位符文本（提示用户输入内容的文本）的输入框特别有用。
+
+* HTML页面
+
+```html
+<input type="email" placeholder="name@example.com" />
+```
+
+* 定位用法
+
+```js
+await page.getByPlaceholder('name@example.com')
+```
+
+#### **`page.getByText()`**
+
+- 根据元素的可见文本内容来定位元素。这对于定位包含特定文本的按钮、链接等非常有用。
+
+* HTML页面
+
+```html
+<span>Welcome, John</span>
+```
+
+* 定位用法
+
+```js
+// 通过元素包含的文本来定位该元素
+await expect(page.getByText('Welcome, John'))
+
+// 设置精确匹配：
+await expect(page.getByText('Welcome, John', { exact: true }))
+
+// 与正则表达式匹配
+await expect(page.getByText(/welcome, [A-Za-z]+$/i))
+```
+
+#### **`page.getByAltText()`**
+
+- 根据图片的 `alt` 文本属性来定位图片元素。这对于确保图片具有适当的替代文本以提高可访问性特别有用。
+
+
+* HTML页面
+
+```html
+<img alt="playwright logo" src="/img/playwright-logo.svg" width="100" />
+```
+
+* 定位用法
+
+```js
+await page.getByAltText('playwright logo')
+```
+
+#### **`page.getByTitle()`**
+   - 根据元素的 `title` 属性来定位元素。尽管这不太常见，但在某些情况下，根据元素的 `title` 文本来定位元素可能是必要的。
+
+
+* HTML页面
+
+```html
+<span title='Issues count'>25 issues</span>
+```
+
+* 定位用法
+
+```js
+await page.getByTitle('Issues count')
+```
+
+#### **`page.getByTestId()`**
+
+- 通过自定义的 `data-testid` 属性来定位元素。这种方法要求你在开发时就在元素上添加了 `data-testid` 属性，以便于测试脚本能够轻松定位到这些元素。
+
+* HTML页面
+```html
+<button data-testid="directions">Itinéraire</button>
+```
+
+* 定位用法
+
+```js
+await page.getByTestId('directions')
+```
+
+
+### 动作
 
 **导航**
 
@@ -361,6 +684,8 @@ await expect(page).toHaveTitle(/Playwright/);
 | expect(locator).toHaveValue()     | 输入元素具有值       |
 | expect(page).toHaveTitle()        | 页面具有标题         |
 | expect(page).toHaveURL()          | 页面具有 URL         |
+
+### 其他
 
 #### 测试隔离
 
