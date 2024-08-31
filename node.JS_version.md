@@ -606,6 +606,12 @@ await page.getByTitle('Issues count')
 await page.getByTestId('directions')
 ```
 
+#### 更多
+
+https://playwright.dev/docs/locators
+
+https://playwright.dev/docs/other-locators
+
 
 ### 动作
 
@@ -615,14 +621,13 @@ await page.getByTestId('directions')
 
 ```typescript
 await page.goto('https://playwright.dev/');
-
 ```
 
 Playwright 将等待页面达到加载状态后才会继续。了解更多关于 page.goto() 选项。
 
 **交互**
 
-执行动作始于定位元素。Playwright 使用 Locators API 执行此操作。定位符表示在任何时候在页面上找到元素（s）的方式，了解更多关于可用的不同类型定位符。Playwright 将在执行动作之前等待元素变为可操作，因此无需等待其变为可用。
+执行动作始于定位元素。Playwright 使用 Locators API 执行此操作。定位符表示在任何时候在页面上找到元素（s）的方式，了解更多关于可用的不同类型定位符。
 
 ```typescript
 // 创建一个定位符。
@@ -654,7 +659,266 @@ await page.getByRole('link', { name: 'Get started' }).click();
 | locator.setInputFiles() | 选择上传文件           |
 | locator.selectOption()  | 在下拉菜单中选择选项   |
 
-#### 断言
+#### 输入
+
+使用 `locator.fill()` 是填写表单字段的最简单方法。它聚焦元素并使用输入的文本触发 input 事件。它适用于 `<input>`、`<textarea>` 和 `[contenteditable]` 元素。
+
+* 示例
+
+```js
+// Text input
+await page.getByRole('textbox').fill('Peter');
+
+// Date input
+await page.getByLabel('Birth date').fill('2020-02-02');
+
+// Time input
+await page.getByLabel('Appointment time').fill('13:15');
+
+// Local datetime input
+await page.getByLabel('Local time').fill('2020-03-02T05:15');
+```
+__字符输入__
+
+> 当页面上有特殊键盘处理时才需要键入字符。
+
+在字段中逐个字符输入，就好像用户使用 `locator.pressSequentially()` 的真实键盘一样。
+
+```js
+// Press keys one by one
+await page.locator('#area').pressSequentially('Hello World!');
+```
+
+此方法将触发所有必要的键盘事件，以及所有 keydown、keyup、keypress 事件。你甚至可以在按键之间指定可选的 delay 以模拟真实的用户行为。
+
+#### 复选框和单选按钮
+
+使用 `locator.setChecked()` 是选中和取消选中复选框或单选按钮的最简单方法。此方法可用于 `input[type=checkbox]`、`input[type=radio]` 和 `[role=checkbox]` 元素。
+
+```js
+// true or false 
+await page.getByRole('checkbox').setChecked(true);
+
+// Check the checkbox
+await page.getByLabel('I agree to the terms above').check();
+
+// Select the radio button
+await page.getByLabel('XL').check();
+```
+
+#### 选择选项
+
+使用 `locator.selectOption()` 选择 `<select>` 元素中的一个或多个选项。你可以指定选项 value 或 label 进行选择。可以选择多个选项。
+
+
+```js
+// Single selection matching the value or label
+await page.getByLabel('Choose a color').selectOption('blue');
+
+// Single selection matching the label
+await page.getByLabel('Choose a color').selectOption({ label: 'Blue' });
+
+// Multiple selected items
+await page.getByLabel('Choose multiple colors').selectOption(['red', 'green', 'blue']);
+```
+
+#### 鼠标点击
+
+鼠标点击相关操作：
+
+```js
+// Generic click
+await page.getByRole('button').click();
+
+// Double click
+await page.getByText('Item').dblclick();
+
+// Right click
+await page.getByText('Item').click({ button: 'right' });
+
+// Shift + click
+await page.getByText('Item').click({ modifiers: ['Shift'] });
+
+// Ctrl + click or Windows and Linux
+// Meta + click on macOS
+await page.getByText('Item').click({ modifiers: ['ControlOrMeta'] });
+
+// Hover over element
+await page.getByText('Item').hover();
+
+// Click the top left corner
+await page.getByText('Item').click({ position: { x: 0, y: 0 } });
+```
+
+__强制点击__
+
+有时，应用使用不平凡的逻辑，其中悬停元素会将其与拦截点击的另一个元素重叠。此行为与元素被覆盖且点击被分派到其他地方的错误没有区别。如果你知道正在发生这种情况，则可以绕过 actionability 检查并强制单击：
+
+```js
+await page.getByRole('button').click({ force: true });
+```
+
+__程序化点击__
+
+如果你希望通过任何可能的方式模拟点击，则可以通过简单地使用 `locator.dispatchEvent()` 在元素上调度点击事件来触发 HTMLElement.click() 行为：
+
+```js
+await page.getByRole('button').dispatchEvent('click');
+```
+
+#### 按键和快捷键
+
+`locator.press()` 方法聚焦所选元素并产生单个击键。它接受在键盘事件的 keyboardEvent.key 属性中触发的逻辑键名称：
+
+```js
+// Hit Enter
+await page.getByText('Submit').press('Enter');
+
+// Dispatch Control+Right
+await page.getByRole('textbox').press('Control+ArrowRight');
+
+// Press $ sign on keyboard
+await page.getByRole('textbox').press('$');
+
+// <input id=name>
+await page.locator('#name').press('Shift+A');
+
+// <input id=name>
+await page.locator('#name').press('Shift+ArrowLeft');
+```
+
+下面是一个表格中`locator.press()`方法支持的一些常用按键及其描述：
+
+
+|    按键名称     |     按键代码     |                       描述                       |
+| :-------------: | :--------------: | :----------------------------------------------: |
+|    Backquote    |        \`        |     反引号（通常位于键盘左上角，Esc键下方）      |
+|      Minus      |        -         |         减号（位于数字键盘或主键盘区域）         |
+|      Equal      |        =         |   等号（位于主键盘区域，通常与加号共享一个键）   |
+|    Backslash    |        \\        | 反斜杠（位于主键盘区域，Esc键下方，Enter键上方） |
+|    Backspace    |    Backspace     |            退格键（删除光标前的字符）            |
+|       Tab       |       Tab        |   制表符键（用于在文本或表单字段之间移动焦点）   |
+|     Delete      |      Delete      |       删除键（删除光标后的字符或选定内容）       |
+|     Escape      |       Esc        |      逃逸键（常用于退出当前操作或取消选择）      |
+|    ArrowDown    |    ArrowDown     |     向下箭头键（用于向下移动光标或滚动页面）     |
+|       End       |       End        |       End键（将光标移动到行尾或文档末尾）        |
+|      Enter      |      Enter       |           回车键（确认输入或执行操作）           |
+|      Home       |       Home       |       Home键（将光标移动到行首或文档开头）       |
+|     Insert      |      Insert      |           插入键（切换插入和覆盖模式）           |
+|    PageDown     |     PageDown     |        向下翻页键（在文档中向下滚动一页）        |
+|     PageUp      |      PageUp      |        向上翻页键（在文档中向上滚动一页）        |
+|   ArrowRight    |    ArrowRight    |     向右箭头键（用于向右移动光标或滚动页面）     |
+|     ArrowUp     |     ArrowUp      |     向上箭头键（用于向上移动光标或滚动页面）     |
+|    F1 - F12     | F1, F2, ..., F12 |       功能键（常用于触发程序中的特定功能）       |
+| Digit0 - Digit9 | 0, 1, 2, ..., 9  |        数字键（位于数字键盘或主键盘顶部）        |
+|   KeyA - KeyZ   | A, B, C, ..., Z  |             字母键（位于主键盘区域）             |
+
+注：
+
+* 可以指定要生成的单个字符，例如 "a" 或 "#"。
+* 还支持以下修改快捷方式：`Shift`, `Control`, `Alt`, `Meta`。
+* 字符区分大小写，因此 "a" 和 "A" 将产生不同的结果。
+* 你仍然需要在 `Shift-A` 中指定大写 A 来生成大写字符。`Shift-a` 产生一个小写字母，就像你切换了 `CapsLock` 一样。
+
+
+#### 上传文件
+
+你可以使用 `locator.setInputFiles()` 方法选择要上传的输入文件。它期望第一个参数指向类型为 "file" 的 输入元素。可以在数组中传递多个文件。如果某些文件路径是相对的，则它们将相对于当前工作目录进行解析。空数组会清除选定的文件。
+
+```js
+// Select one file
+await page.getByLabel('Upload file').setInputFiles(path.join(__dirname, 'myfile.pdf'));
+
+// Select multiple files
+await page.getByLabel('Upload files').setInputFiles([
+  path.join(__dirname, 'file1.txt'),
+  path.join(__dirname, 'file2.txt'),
+]);
+
+// Select a directory
+await page.getByLabel('Upload directory').setInputFiles(path.join(__dirname, 'mydir'));
+
+// Remove all the selected files
+await page.getByLabel('Upload file').setInputFiles([]);
+
+// Upload buffer from memory
+await page.getByLabel('Upload file').setInputFiles({
+  name: 'file.txt',
+  mimeType: 'text/plain',
+  buffer: Buffer.from('this is test')
+});
+```
+
+如果你手头没有输入元素（它是动态创建的），你可以处理 page.on('filechooser') 事件或在操作时使用相应的等待方法：
+
+```js
+// Start waiting for file chooser before clicking. Note no await.
+const fileChooserPromise = page.waitForEvent('filechooser');
+await page.getByLabel('Upload file').click();
+const fileChooser = await fileChooserPromise;
+await fileChooser.setFiles(path.join(__dirname, 'myfile.pdf'));
+```
+
+#### 焦点元素
+
+对于处理焦点事件的动态页面，你可以使用 locator.focus() 将给定元素聚焦。
+
+```js
+await page.getByLabel('Password').focus();
+```
+
+#### 拖放
+
+你可以使用 `locator.dragTo()` 执行拖放操作。该方法将：
+
+* 将鼠标悬停在要拖动的元素上。
+* 按鼠标左键。
+* 将鼠标移动到将接收掉落的元素。
+* 释放鼠标左键。
+
+```js
+await page.locator('#item-to-be-dragged').dragTo(page.locator('#item-to-drop-at'));
+```
+
+__手动拖动__
+
+如果你想精确控制拖动操作，请使用更底层的方法，例如 locator.hover()、mouse.down()、mouse.move() 和 mouse.up()。
+
+```js
+await page.locator('#item-to-be-dragged').hover();
+await page.mouse.down();
+await page.locator('#item-to-drop-at').hover();
+await page.mouse.up();
+```
+
+#### 滚动
+
+大多数情况下，Playwright 会在执行任何操作之前自动为你滚动。因此，你不需要明确滚动。
+
+```js
+// Scrolls automatically so that button is visible
+await page.getByRole('button').click();
+```
+
+但是，在极少数情况下，你可能需要手动滚动。例如，你可能希望强制 "无限列表" 加载更多元素，或将页面定位到特定的屏幕截图。在这种情况下，最可靠的方法是找到你想要在底部显示的元素，然后将其滚动到视图中。
+
+```js
+// Scroll the footer into view, forcing an "infinite list" to load more content
+await page.getByText('Footer text').scrollIntoViewIfNeeded();
+```
+
+如果你想更精确地控制滚动，请使用 `mouse.wheel()` 或 `locator.evaluate()`：
+
+```js
+// Position the mouse and scroll with the mouse wheel
+await page.getByTestId('scrolling-container').hover();
+await page.mouse.wheel(0, 10);
+
+// Alternatively, programmatically scroll a specific element
+await page.getByTestId('scrolling-container').evaluate(e => e.scrollTop += 100);
+```
+
+### 断言
 
 Playwright 以 `expect` 函数的形式包含测试断言。要进行断言，请调用 `expect(value)` 并选择一个反映期望的匹配器。
 
@@ -668,7 +932,7 @@ Playwright 还包括异步匹配器，将等待直到满足预期条件。使用
 
 ```typescript
 await expect(page).toHaveTitle(/Playwright/);
-```
+```                                                                                                          
 
 这里是最流行的异步断言列表。注意，还有更多需要熟悉：
 
