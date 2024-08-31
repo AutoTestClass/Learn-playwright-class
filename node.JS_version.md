@@ -932,9 +932,12 @@ Playwright 还包括异步匹配器，将等待直到满足预期条件。使用
 
 ```typescript
 await expect(page).toHaveTitle(/Playwright/);
-```                                                                                                          
+```
 
-这里是最流行的异步断言列表。注意，还有更多需要熟悉：
+> 默认情况下，断言超时设置为 5 秒。你可以通过此超时或通过测试配置中的 testConfig.expect 值配置一次。
+
+
+这里是最流行的异步断言列表：
 
 | 断言                              | 描述                 |
 | --------------------------------- | -------------------- |
@@ -948,6 +951,114 @@ await expect(page).toHaveTitle(/Playwright/);
 | expect(locator).toHaveValue()     | 输入元素具有值       |
 | expect(page).toHaveTitle()        | 页面具有标题         |
 | expect(page).toHaveURL()          | 页面具有 URL         |
+
+
+#### 自动重试断言
+
+以下断言将重试，直到断言通过或达到断言超时。请注意，重试断言是异步的，因此你必须对它们进行 await。
+
+|                        断言                         |            描述             |
+| :-------------------------------------------------: | :-------------------------: |
+|        await expect(locator).toBeAttached()         |         元素已附加          |
+|         await expect(locator).toBeChecked()         |        复选框被选中         |
+|        await expect(locator).toBeDisabled()         |         元素被禁用          |
+|        await expect(locator).toBeEditable()         |         元素可编辑          |
+|          await expect(locator).toBeEmpty()          |         容器是空的          |
+|         await expect(locator).toBeEnabled()         |         元素已启用          |
+|         await expect(locator).toBeFocused()         |         元素已聚焦          |
+|         await expect(locator).toBeHidden()          |         元素不可见          |
+|       await expect(locator).toBeInViewport()        |       元素与视口相交        |
+|         await expect(locator).toBeVisible()         |          元素可见           |
+|        await expect(locator).toContainText()        |        元素包含文本         |
+| await expect(locator).toHaveAccessibleDescription() |  元素具有匹配的 可访问描述  |
+|    await expect(locator).toHaveAccessibleName()     | 元素具有匹配的 可访问的名称 |
+|       await expect(locator).toHaveAttribute()       |      元素具有 DOM 属性      |
+|         await expect(locator).toHaveClass()         |       元素具有类属性        |
+|         await expect(locator).toHaveCount()         |    列表有确切的子级数量     |
+|          await expect(locator).toHaveCSS()          |      元素具有 CSS 属性      |
+|          await expect(locator).toHaveId()           |        元素有一个 ID        |
+|      await expect(locator).toHaveJSProperty()       |  元素具有 JavaScript 属性   |
+|         await expect(locator).toHaveRole()          |  元素具有特定的 ARIA 角色   |
+|      await expect(locator).toHaveScreenshot()       |         元素有截图          |
+|         await expect(locator).toHaveText()          |       元素与文本匹配        |
+|         await expect(locator).toHaveValue()         |        输入有一个值         |
+|        await expect(locator).toHaveValues()         |      选择已选择的选项       |
+|        await expect(page).toHaveScreenshot()        |         页面有截图          |
+|          await expect(page).toHaveTitle()           |         页面有标题          |
+|           await expect(page).toHaveURL()            |       页面有一个 URL        |
+|           await expect(response).toBeOK()           |        响应状态为 OK        |
+
+#### 不重试断言
+
+这些断言允许测试任何条件，但不会自动重试。大多数时候，网页异步显示信息，并且使用非重试断言可能会导致不稳定的测试。
+
+尽可能首选 auto-retrying 断言。对于需要重试的更复杂的断言，请使用 expect.poll 或 expect.toPass。
+
+#### 否定匹配器
+
+一般来说，通过在匹配器前面添加 .not，我们可以预期相反的情况成立：
+
+```js
+
+expect(value).not.toEqual(0);
+await expect(locator).not.toContainText('some text');
+```
+
+#### 软断言
+
+默认情况下，失败的断言将终止测试执行。Playwright 还支持软断言：失败的软断言不会终止测试执行，而是将测试标记为失败。
+
+```js
+// Make a few checks that will not stop the test when failed...
+await expect.soft(page.getByTestId('status')).toHaveText('Success');
+await expect.soft(page.getByTestId('eta')).toHaveText('1 day');
+
+// ... and continue the test to check more things.
+await page.getByRole('link', { name: 'next page' }).click();
+await expect.soft(page.getByRole('heading', { name: 'Make another order' })).toBeVisible();
+```
+
+在测试执行期间的任何时候，你都可以检查是否存在任何软断言失败：
+
+```js
+// Make a few checks that will not stop the test when failed...
+await expect.soft(page.getByTestId('status')).toHaveText('Success');
+await expect.soft(page.getByTestId('eta')).toHaveText('1 day');
+
+// Avoid running further if there were soft assertion failures.
+expect(test.info().errors).toHaveLength(0);
+```
+
+请注意，软断言仅适用于 Playwright 测试运行程序。
+
+#### 自定义配置
+
+你可以创建自己的预配置 expect 实例以拥有自己的默认值，例如 timeout 和 soft。
+
+```js
+const slowExpect = expect.configure({ timeout: 10000 });
+await slowExpect(locator).toHaveText('Submit');
+
+// Always do soft assertions.
+const softExpect = expect.configure({ soft: true });
+await softExpect(locator).toHaveText('Submit');
+```
+
+#### 更多
+
+https://playwright.dev/docs/test-assertions
+
+
+#### 自定义期望消息
+
+你可以指定自定义期望消息作为 expect 函数的第二个参数，例如：
+
+```js
+await expect(page.getByText('Name'), 'should be logged in').toBeVisible();
+```
+
+此消息将显示在报告器中，无论是通过预期还是失败预期，从而提供有关该断言的更多背景信息。
+
 
 ### 其他
 
