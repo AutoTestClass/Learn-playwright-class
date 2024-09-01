@@ -994,12 +994,44 @@ await expect(page).toHaveTitle(/Playwright/);
 
 尽可能首选 auto-retrying 断言。对于需要重试的更复杂的断言，请使用 expect.poll 或 expect.toPass。
 
+|                   断言                   |                              描述                              |
+| :--------------------------------------: | :------------------------------------------------------------: |
+|          `expect(value).toBe()`          |                             值相同                             |
+|      `expect(value).toBeCloseTo()`       |                          数字近似相等                          |
+|      `expect(value).toBeDefined()`       |                          值不是未定义                          |
+|       `expect(value).toBeFalsy()`        |             值为假值，例如 `false`、`0`、`null` 等             |
+|    `expect(value).toBeGreaterThan()`     |                            数字大于                            |
+| `expect(value).toBeGreaterThanOrEqual()` |                         数字大于或等于                         |
+|     `expect(value).toBeInstanceOf()`     |                       对象是某个类的实例                       |
+|      `expect(value).toBeLessThan()`      |                            数字小于                            |
+|  `expect(value).toBeLessThanOrEqual()`   |                         数字小于或等于                         |
+|        `expect(value).toBeNaN()`         |                           值为 `NaN`                           |
+|        `expect(value).toBeNull()`        |                          值为 `null`                           |
+|       `expect(value).toBeTruthy()`       |            值为真值，即不是 `false`、`0`、`null` 等            |
+|     `expect(value).toBeUndefined()`      |                           值是未定义                           |
+|       `expect(value).toContain()`        |                       字符串包含子字符串                       |
+|     `expect(value).toContainEqual()`     |                     数组或集合包含相似元素                     |
+|        `expect(value).toEqual()`         |                  值相似 - 深度相等和模式匹配                   |
+|      `expect(value).toHaveLength()`      |                      数组或字符串具有长度                      |
+|     `expect(value).toHaveProperty()`     |                        对象具有某个属性                        |
+|        `expect(value).toMatch()`         |                      字符串匹配正则表达式                      |
+|     `expect(value).toMatchObject()`      |                       对象包含指定的属性                       |
+|     `expect(value).toStrictEqual()`      |                      值相似，包括属性类型                      |
+|        `expect(value).toThrow()`         |                          函数抛出错误                          |
+|          `expect(value).any()`           |                    匹配类的任何实例/原始值                     |
+|        `expect(value).anything()`        |                          匹配任何内容                          |
+|    `expect(value).arrayContaining()`     |                        数组包含特定元素                        |
+|        `expect(value).closeTo()`         |            数字近似相等（与 `toBeCloseTo()` 类似）             |
+|    `expect(value).objectContaining()`    |                        对象包含特定属性                        |
+|    `expect(value).stringContaining()`    |                       字符串包含子字符串                       |
+|     `expect(value).stringMatching()`     |                      字符串匹配正则表达式                      |
+
+
 #### 否定匹配器
 
 一般来说，通过在匹配器前面添加 .not，我们可以预期相反的情况成立：
 
 ```js
-
 expect(value).not.toEqual(0);
 await expect(locator).not.toContainText('some text');
 ```
@@ -1044,11 +1076,6 @@ const softExpect = expect.configure({ soft: true });
 await softExpect(locator).toHaveText('Submit');
 ```
 
-#### 更多
-
-https://playwright.dev/docs/test-assertions
-
-
 #### 自定义期望消息
 
 你可以指定自定义期望消息作为 expect 函数的第二个参数，例如：
@@ -1058,6 +1085,10 @@ await expect(page.getByText('Name'), 'should be logged in').toBeVisible();
 ```
 
 此消息将显示在报告器中，无论是通过预期还是失败预期，从而提供有关该断言的更多背景信息。
+
+#### 更多
+
+https://playwright.dev/docs/test-assertions
 
 
 ### 其他
@@ -1134,7 +1165,7 @@ Playwright Codegen（代码生成器）是一个自动生成测试代码的工�
 - 如何录制测试。
 - 如何生成定位符。
 
-## 运行 Codegen
+#### 运行 Codegen
 
 使用 `codegen` 命令运行测试生成器，并接着输入要生成测试的网站的 URL。URL 是可选的，您也可以运行命令时不输入它，然后在浏览器窗口中直接添加 URL。
 
@@ -1142,7 +1173,7 @@ Playwright Codegen（代码生成器）是一个自动生成测试代码的工�
 npx playwright codegen demo.playwright.dev/todomvc
 ```
 
-### 录制测试
+#### 录制测试
 
 运行 `codegen` 并在浏览器中执行操作。Playwright 将为用户交互生成代码。`Codegen` 将查看渲染后的页面并找出推荐的定位符，优先考虑角色、文本和测试 ID 定位符。如果生成器识别到多个元素与定位符匹配，它将改进定位符以使其具有弹性并唯一标识目标元素，从而消除和减少因定位符引起的测试失败和不稳定。
 
@@ -1163,7 +1194,7 @@ npx playwright codegen demo.playwright.dev/todomvc
 
 要了解更多关于生成测试的信息，请查看我们的 Codegen 详细指南。
 
-### 生成定位符
+#### 生成定位符
 
 你可以使用测试生成器生成定位符。
 
