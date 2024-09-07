@@ -1090,10 +1090,281 @@ await expect(page.getByText('Name'), 'should be logged in').toBeVisible();
 
 https://playwright.dev/docs/test-assertions
 
+## 示例
 
-### 其他
+为了加强对playwright的学习，我们需要通过一些例子，快速了解一些playwright的常用操作。
 
-#### 测试隔离
+https://sahitest.com/demo/
+
+> 这个网站提供了网页常见元素，网站提供许多子页面，每个页面显示一类元素。
+
+https://seleniumbase.io/demo_page
+
+> 这是一个专门针对seleniumbase自动化工具提供的操作页面，将所有常见的元素都列出来了，方便我们学习。
+
+
+https://demo.playwright.dev/todomvc
+
+> 这是一个todomvc的demo，可以学习到playwright中如何操作页面元素。
+
+https://www.baidu.com
+
+> 作为最常用的网站之一，baidu页面也提供了一些可操作的元素。
+
+### 示例：遍历搜索列表
+
+这个例子中主要演示如何遍历一个搜索列表，并断言每个元素的文本内容是否包含关键字。
+
+```ts
+import { test, expect } from '@playwright/test';
+
+test('baidu advanced search setting', async ({ page }) => {
+  await page.goto('https://www.baidu.com');
+
+  // 搜索设置
+  await page.locator('#kw').fill('title:(playwright)')
+  await page.locator('#su').click();
+  await page.waitForTimeout(2000);
+
+  // 获取一组元素，遍历断言每个元素的文本内容
+  const elems = await page.locator('div > h3 > a')
+
+  // 遍历每个元素，获取文本内容，并进行断言
+  for (let i = 0; i < await elems.count(); i++) {
+    const elem = await elems.nth(i); // 获取第i个元素
+    
+    const textContent = await elem.textContent(); // 获取文本内容
+    console.log(textContent);
+    
+    // 注意：这里的断言应该是针对每个元素的文本内容，而不是页面的标题
+    if (textContent) {
+      const lowerCaseText = textContent.toLowerCase();
+      expect(lowerCaseText).toContain('playwright');  
+    }
+  }
+  
+});
+```
+
+### 示例：新标签页面
+
+这个例子中主要演示监听一个新的页面，并切换到新的页面。
+
+```ts
+import { test, expect } from '@playwright/test';
+
+test('baidu advanced search setting', async ({ context }) => {
+  const page = await context.newPage();
+  await page.goto('https://www.baidu.com');
+
+  // 搜索设置
+  await page.locator('#s-usersetting-top').first().hover();
+  await page.locator('#s-user-setting-menu > div > a.setpref.first > span').click();
+  await page.waitForTimeout(2000);
+  // 高级搜索
+  await page.locator('#wrapper > div.bdlayer.s-isindex-wrap.new-pmd.pfpanel > div > div > ul > li:nth-child(2)').click();
+
+  await page.locator('#adv_keyword').fill('seldomqa');
+
+  // 下拉框
+  await page.locator('#adv-setting-gpc > div > div.c-select-selection').click();
+  await page.locator('#adv-setting-gpc > div > div.c-select-dropdown > div.c-select-dropdown-list > p:nth-child(5)').click();
+  // 单选框
+  await page.locator('#q5_1').check();
+  await page.waitForTimeout(2000);
+  
+  // 高级搜索 - 监听打开新的页面
+  const [newPage] = await Promise.all([
+    context.waitForEvent('page'),
+    // page.click('#adv-setting-8 > input.advanced-search-btn.c-btn.c-btn-primary.switch-button'),
+    page.locator('#adv-setting-8 > input.advanced-search-btn.c-btn.c-btn-primary.switch-button').click()
+  ]);
+
+  await newPage.waitForTimeout(3000);
+
+  // 断言新页面标题
+  await expect(newPage).toHaveTitle('title: (seldomqa)_百度搜索');  // 断言新的标签页的标题
+  
+  // 断言原页面标题
+  await expect(page).toHaveTitle('百度一下，你就知道');
+});
+
+```
+
+### 示例：弹窗处理
+
+Playwright 默认会自动处理弹出的对话框（如 alert、confirm 和 prompt），这会导致 alert 在脚本运行中被跳过而不显示。
+
+我们可以手动监听 dialog 事件，并使用 accept 或 dismiss 方法来处理它。
+
+```ts
+import { test, expect } from '@playwright/test';
+
+test('sahitest alert', async ({ context }) => {
+  const page = await context.newPage();
+  await page.goto('https://sahitest.com/demo/alertTest.htm');
+  
+
+  // 监听 alert 对话框
+  page.on('dialog', async (dialog) => {
+    console.log(`Dialog message: ${dialog.message()}`);
+    await page.waitForTimeout(3000);
+    await dialog.accept(); // 接受 alert 对话框
+  });
+
+  // 点击按钮，触发 alert
+  await page.getByRole('button', { name: 'Click For Alert' }).click();
+  
+});
+``` 
+
+### 示例：表单处理
+
+playwright 支持表单嵌套操作，先进入表单，再操作表单里面的元素。
+
+```ts
+import { test, expect } from '@playwright/test';
+
+test('sahitest iframe', async ({ context }) => {
+  const page = await context.newPage();
+  await page.goto('https://sahitest.com/demo/iframesTest.htm');
+
+ // 查找 iframe
+  const frameElement = await page.frameLocator('body > iframe');
+
+  // 现在可以在 iframe 内查找元素并进行交互
+  const title = await frameElement.locator('body > h2').textContent()
+  console.log('------------------>', title);
+  expect(title).toBe('Sahi Tests');
+  
+});
+```
+
+### 示例：下拉选择
+
+playwright 支持下拉选择，包括通过文本、值、索引等方式进行选择。
+
+```ts
+import { test, expect } from '@playwright/test';
+
+test('sahitest alert', async ({ context }) => {
+  const page = await context.newPage();
+  await page.goto('https://sahitest.com/demo/selectTest.htm');
+  
+  await page.locator('#s1Id').selectOption('o1');
+  await page.locator('#s4Id').selectOption(['o1val', 'o2val']);
+  await page.waitForTimeout(2000);
+
+  await page.locator('#s2Id').selectOption({ label: 'o2' });
+  await page.locator('#s1').selectOption({ label: 'Business Phone' });
+  await page.waitForTimeout(2000);
+
+  await page.locator('#testInputEvent').selectOption({ index: 2 });
+  await page.waitForTimeout(2000);
+  
+});
+```
+
+### 实例：截图
+
+playwright 支持截图，包括页面截图和元素截图。
+
+```ts
+import { test, expect } from '@playwright/test';
+
+test('sahitest screenshot', async ({ page }) => {
+  await page.goto('https://sahitest.com/demo/takePageScreenshotTest.htm');
+  
+  // 页面截图
+  await page.screenshot({ path: 'sahitest-screenshot.png' });
+  // 元素截图
+  await page.locator('body > div.api > div').screenshot({ path: 'sahitest-screenshot-div.png' });
+
+
+});
+```
+
+### 实例：拖放
+
+playwright 支持拖放操作。
+
+```ts
+import { test, expect } from '@playwright/test';
+
+test('sahitest drag drop', async ({ page }) => {
+  await page.goto('https://sahitest.com/demo/dragDropMooTools.htm');
+  
+  // 推动
+  await page.getByText('Drag me').dragTo(page.getByText('Item 1'));
+  await page.waitForTimeout(2000);
+
+});
+
+```
+
+### 实例：上传
+
+playwright 支持文件上传。
+
+```ts
+import { test, expect } from '@playwright/test';
+import path from 'path';
+
+test('sahitest screenshot', async ({ page }) => {
+  await page.goto('https://sahitest.com/demo/php/fileUpload.htm');
+  
+  
+  // 指定要上传的文件路径
+  const filePath = path.join(__dirname, 'files', 'sahitest-upload.png');
+  // 页面截图
+  await page.locator('#file').setInputFiles(filePath);
+  await page.waitForTimeout(2000);
+
+  await page.locator('#files').setInputFiles([
+    path.join(__dirname, 'files', 'file1.txt'),
+    path.join(__dirname, 'files', 'file2.txt'),
+  ]);
+  await page.waitForTimeout(2000);
+  
+});
+```
+
+### 实例：键盘操作
+
+playwright 支持键盘操作，包括输入、删除、组合键等。
+
+```ts
+import { test, expect } from '@playwright/test';
+
+test('baidu advanced search setting', async ({ page }) => {
+  await page.goto('https://www.baidu.com');
+
+  const input = page.locator('#kw')
+  // 搜索设置
+  await input.fill('playwrightt')
+  await page.waitForTimeout(2000);
+
+  await input.press('Backspace');
+  await page.waitForTimeout(2000);
+
+  await input.press('Control+A')
+  await page.waitForTimeout(2000);
+  
+  await input.press('Control+X')
+  await page.waitForTimeout(2000);
+  
+  await input.press('Control+V')
+  await page.waitForTimeout(2000);
+
+  await input.press('Enter')
+  await page.waitForTimeout(2000);
+
+});
+```
+
+## 其他
+
+### 测试隔离
 
 Playwright 测试基于测试夹具的概念，例如内置的页面夹具，它被传递到你的测试中。由于浏览器上下文，页面在测试之间是隔离的，这相当于一个全新的浏览器配置文件，每个测试都获得一个新环境，即使多个测试在单个浏览器中运行。
 
@@ -1111,7 +1382,7 @@ test('another test', async ({ page }) => {
 });
 ```
 
-#### 使用测试钩子
+### 使用测试钩子
 
 你可以使用各种测试钩子，例如 `test.describe` 声明一组成组测试，以及 `test.beforeEach` 和 `test.afterEach` 它们在每个测试之前/之后执行。其他钩子包括 `test.beforeAll` 和 `test.afterAll` 它们在每个工作器的所有测试之前/之后执行一次。
 
