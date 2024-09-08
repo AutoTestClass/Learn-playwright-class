@@ -11,5 +11,4 @@ test('sahitest iframe', async ({ context }) => {
   const title = await frameElement.locator('body > h2').textContent()
   console.log('------------------>', title);
   expect(title).toBe('Sahi Tests');
-  
 });

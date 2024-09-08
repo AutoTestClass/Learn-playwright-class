@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('baidu advanced search setting', async ({ page }) => {
+test('baidu keyword', async ({ page }) => {
   await page.goto('https://www.baidu.com');
 
   const input = page.locator('#kw')

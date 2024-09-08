@@ -5,13 +5,13 @@ test('baidu advanced search setting', async ({ context }) => {
   await page.goto('https://www.baidu.com');
 
   // 搜索设置
-  await page.locator('#s-usersetting-top').first().hover();
-  await page.locator('#s-user-setting-menu > div > a.setpref.first > span').click();
+  await page.locator('#s-usersetting-top').hover();
+  await page.locator('#s-user-setting-menu > div > a > span.set').first().click();
   await page.waitForTimeout(2000);
   // 高级搜索
-  await page.locator('#wrapper > div.bdlayer.s-isindex-wrap.new-pmd.pfpanel > div > div > ul > li:nth-child(2)').click();
-
-  await page.locator('#adv_keyword').fill('seldomqa');
+  await page.locator('#wrapper > div > div > div.pftab > ul.pftab_hd > li:nth-child(2)').click();
+  
+  await page.locator('#adv_keyword').fill('palywright');
 
   // 下拉框
   await page.locator('#adv-setting-gpc > div > div.c-select-selection').click();
@@ -30,7 +30,7 @@ test('baidu advanced search setting', async ({ context }) => {
   await newPage.waitForTimeout(3000);
 
   // 断言新页面标题
-  await expect(newPage).toHaveTitle('title: (seldomqa)_百度搜索');  // 断言新的标签页的标题
+  await expect(newPage).toHaveTitle('title: (palywright)_百度搜索');  // 断言新的标签页的标题
   
   // 断言原页面标题
   await expect(page).toHaveTitle('百度一下，你就知道');

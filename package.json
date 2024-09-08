@@ -1,0 +1,17 @@
+{
+  "name": "learn-playwright-class",
+  "version": "1.0.0",
+  "description": "介绍 playwright为现代web应用程序提供了可靠的端到端（end-to-end）测试。",
+  "main": "index.js",
+  "scripts": {},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.47.0",
+    "@types/node": "^22.5.4"
+  },
+  "dependencies": {
+    "learn-playwright-class": "file:"
+  }
+}

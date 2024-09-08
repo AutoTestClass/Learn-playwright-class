@@ -1,11 +1,12 @@
 import { test, expect } from '@playwright/test';
 
-test('baidu advanced search setting', async ({ page }) => {
+test('baidu search result', async ({ page }) => {
   await page.goto('https://www.baidu.com');
 
-  // 搜索设置
+  // 搜索设置 id="kw" #kw
   await page.locator('#kw').fill('title:(playwright)')
-  await page.locator('#su').click();
+  await page.locator('#kw').press('Enter');
+  // await page.locator('#su').click();
   await page.waitForTimeout(2000);
 
   // 获取一组元素，遍历断言每个元素的文本内容
