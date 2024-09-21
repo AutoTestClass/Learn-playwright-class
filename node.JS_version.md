@@ -1426,6 +1426,35 @@ __录制测试__
 
 ![img](https://github.com/microsoft/playwright/assets/13063165/2c8a12e2-4e98-4fdd-af92-1d73ae696d86)
 
+### 控制浏览器对象
+
+除了通过运行参数控制浏览器类型和 headless 模式外，这些参数可以在测试中设置。
+
+Playwright 提供了各种对象，如浏览器、上下文、页面等，这些对象都可以用于测试。
+
+```js
+import { test, expect, chromium } from '@playwright/test';
+
+test('browser object', async () => {
+  
+  const browser = await chromium.launch({ headless: false });
+  const context = await browser.newContext();
+  // context.addCookies([cookieObject1, cookieObject2]);
+  const page = await context.newPage();
+  await page.goto('https://playwright.dev');
+  await page.waitForTimeout(2000);
+  
+  await expect(page).toHaveTitle(/Playwright/);
+  
+  await browser.close();
+});
+```
+
+这样的代码，在运行的时候就不需要指定参数了。
+
+```bash
+>  npx playwright test browser-object
+```
 
 ### 测试配置
 
@@ -1704,25 +1733,6 @@ export default defineConfig({
 });
 ```
 
-如果指定了浏览器，需要在浏览器中配置。
-
-```ts
-import { defineConfig } from '@playwright/test';
-
-export default defineConfig({
-
-  projects: [
-    {
-      name: 'chromium',
-      use: {
-        ...devices['Desktop Chrome'],
-        userAgent: 'some custom ua',
-        viewport: { width: 1920, height: 1080 },
-      },
-    },
-});
-```
-
 说明设置初始上下文选项的示例测试：
 
 ```ts
@@ -1738,34 +1748,126 @@ test('should inherit use options on context when using built-in browser fixture'
 });
 ```
 
-### 控制浏览器对象
+**模拟配置**
 
-除了通过运行参数控制浏览器类型和 headless 模式外，这些参数可以在测试中设置。
+Playwright 为选定的台式机、平板电脑和移动设备提供了使用 playwright.devices 的 设备参数注册表。它可用于模拟特定设备的浏览器行为，例如用户代理、屏幕尺寸、视口以及是否启用了触摸。所有测试都将使用指定的设备参数运行。
 
-Playwright 提供了各种对象，如浏览器、上下文、页面等，这些对象都可以用于测试。
 
-```js
-import { test, expect, chromium } from '@playwright/test';
+```ts
+import { defineConfig } from '@playwright/test';
 
-test('browser object', async () => {
-  
-  const browser = await chromium.launch({ headless: false });
-  const context = await browser.newContext();
-  // context.addCookies([cookieObject1, cookieObject2]);
-  const page = await context.newPage();
-  await page.goto('https://playwright.dev');
-  await page.waitForTimeout(2000);
-  
-  await expect(page).toHaveTitle(/Playwright/);
-  
-  await browser.close();
+export default defineConfig({
+
+  projects: [
+    {
+      name: 'chromium',
+      use: {
+        ...devices['Desktop Chrome'],
+        // 用户代理额 
+        userAgent: 'some custom ua',
+        // 浏览器窗口大小
+        viewport: { width: 1920, height: 1080 },
+      },
+    },
+    {
+      name: 'Mobile Safari',
+      use: {
+        ...devices['iPhone 13'],
+        // 是否考虑元视口标签并启用触摸事件。
+        isMobile: false,
+      },
+    },
 });
 ```
+### Page object 设计模式
 
-这样的代码，在运行的时候就不需要指定参数了。
+可以构建大型测试套件以优化创作和维护的便利性。页面对象模型是构建测试套件的一种方法。
 
-```shell
->  npx playwright test browser-object
+页面对象代表 Web 应用的一部分。电商 Web 应用可能有主页、列表页面和结账页面。它们中的每一个都可以由页面对象模型来表示。
+
+页面对象通过创建适合你的应用的更高级别 API 来简化创作，通过在一处捕获元素选择器并创建可重用代码以避免重复来简化维护。
+
+**定义Page对象**
+
+我们将创建一个 PlaywrightDevPage 辅助类来封装 playwright.dev 页面上的常见操作。在内部，它将使用 page 对象。
+
+```ts
+import { expect, type Locator, type Page } from '@playwright/test';
+
+export class PlaywrightDevPage {
+  readonly page: Page;
+  readonly getStartedLink: Locator;
+  readonly gettingStartedHeader: Locator;
+  readonly pomLink: Locator;
+  readonly tocList: Locator;
+
+  constructor(page: Page) {
+    this.page = page;
+    this.getStartedLink = page.locator('a', { hasText: 'Get started' });
+    this.gettingStartedHeader = page.locator('h1', { hasText: 'Installation' });
+    this.pomLink = page.locator('li', {
+      hasText: 'Guides',
+    }).locator('a', {
+      hasText: 'Page Object Model',
+    });
+    this.tocList = page.locator('article div.markdown ul > li > a');
+  }
+
+  async goto() {
+    await this.page.goto('https://playwright.dev');
+  }
+
+  async getStarted() {
+    await this.getStartedLink.first().click();
+    await expect(this.gettingStartedHeader).toBeVisible();
+  }
+
+  async pageObjectModel() {
+    await this.getStarted();
+    await this.pomLink.click();
+  }
+}
+```
+
+**编写用例**
+
+现在我们可以在测试中使用 PlaywrightDevPage 类。
+
+```ts
+import { test, expect } from '@playwright/test';
+import { PlaywrightDevPage } from './page/playwright-dev-page';
+
+
+test('getting started should contain table of contents2', async ({ page }) => {
+  
+  const playwrightDev = new PlaywrightDevPage(page);
+  
+  await playwrightDev.goto();
+  
+  await playwrightDev.getStarted();
+
+  await expect(playwrightDev.tocList).toHaveText([
+    `How to install Playwright`,
+    `What's Installed`,
+    `How to run the example test`,
+    `How to open the HTML test report`,
+    `Write tests using web first assertions, page fixtures and locators`,
+    `Run single test, multiple tests, headed mode`,
+    `Generate tests with Codegen`,
+    `See a trace of your tests`
+  ]);
+});
+
+test('should show Page Object Model article', async ({ page }) => {
+
+  const playwrightDev = new PlaywrightDevPage(page);
+
+  await playwrightDev.goto();
+  
+  await playwrightDev.pageObjectModel();
+  
+  await expect(page.locator('article')).toContainText('Page Object Model is a common pattern');
+});
 ```
 
 ### Fixtures
