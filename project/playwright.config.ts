@@ -29,24 +29,42 @@ export default defineConfig({
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
+    
+    // 用例失败截图
+    screenshot: 'only-on-failure',
+    
+    // 用户代理
+    // userAgent: 'some custom ua',
+
+    // 启动浏览器窗口
+    // viewport: { width: 100, height: 100 },
+    
+    // 关闭无头模式
+    headless: false,  
+
+    colorScheme: 'dark', 
   },
 
   /* Configure projects for major browsers */
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        // userAgent: 'some custom ua',
+        // viewport: { width: 1920, height: 1080 },
+      },
     },
 
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
+    // {
+    //   name: 'firefox',
+    //   use: { ...devices['Desktop Firefox'] },
+    // },
 
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
+    // {
+    //   name: 'webkit',
+    //   use: { ...devices['Desktop Safari'] },
+    // },
 
     /* Test against mobile viewports. */
     // {

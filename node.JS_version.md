@@ -1090,7 +1090,7 @@ await expect(page.getByText('Name'), 'should be logged in').toBeVisible();
 
 https://playwright.dev/docs/test-assertions
 
-## 示例
+## 使用示例
 
 为了加强对playwright的学习，我们需要通过一些例子，快速了解一些playwright的常用操作。
 
@@ -1362,13 +1362,417 @@ test('baidu advanced search setting', async ({ page }) => {
 });
 ```
 
-## 其他
+## playwright测试
 
-### 测试隔离
 
-Playwright 测试基于测试夹具的概念，例如内置的页面夹具，它被传递到你的测试中。由于浏览器上下文，页面在测试之间是隔离的，这相当于一个全新的浏览器配置文件，每个测试都获得一个新环境，即使多个测试在单个浏览器中运行。
+### 录制测试
 
-tests/example.spec.ts
+
+**Playwright Codegen 简介**
+
+Playwright Codegen（代码生成器）是一个自动生成测试代码的工具，它可以帮助开发者快速编写测试脚本。使用 Codegen，您可以通过录制用户的操作来生成测试代码，这使得编写测试变得更加简单和快捷。
+
+**使用 Codegen 的好处**
+
+- **快速开始**：对于不熟悉 Playwright API 的开发者，使用 Codegen 可以快速生成测试代码。
+- **减少错误**：自动生成的代码减少了手动编写代码时可能出现的错误。
+- **提高效率**：节省编写测试脚本的时间，让开发者可以专注于测试逻辑。
+
+**如何使用 Codegen**
+
+1. **启动 Codegen**：在 Playwright 测试脚本中，使用 `codegen` 命令启动 Codegen。
+2. **录制操作**：执行页面操作，如点击、输入等，这些操作将被 Codegen 录制。
+3. **生成代码**：录制完成后，Codegen 将生成对应的测试代码。
+
+
+__运行 Codegen__
+
+使用 `codegen` 命令运行测试生成器，并接着输入要生成测试的网站的 URL。URL 是可选的，您也可以运行命令时不输入它，然后在浏览器窗口中直接添加 URL。
+
+```bash
+npx playwright codegen demo.playwright.dev/todomvc
+```
+
+__录制测试__
+
+运行 `codegen` 并在浏览器中执行操作。Playwright 将为用户交互生成代码。`Codegen` 将查看渲染后的页面并找出推荐的定位符，优先考虑角色、文本和测试 ID 定位符。如果生成器识别到多个元素与定位符匹配，它将改进定位符以使其具有弹性并唯一标识目标元素，从而消除和减少因定位符引起的测试失败和不稳定。
+
+可以使用测试生成器录制：
+
+- 通过简单地与页面交互，录制点击或填写等动作。
+- 通过点击工具栏中的一个图标，然后点击页面上的元素来录制断言。您可以选择：
+  - `assert visibility` 断言元素是可见的。
+  - `assert text` 断言元素包含特定文本。
+  - `assert value` 断言元素具有特定值。
+
+![img](https://github.com/microsoft/playwright/assets/13063165/34a79ea1-639e-4cb3-8115-bfdc78e3d34d)
+
+
+当您完成与页面的交互后，按 `record` 按钮停止录制，并使用 `copy` 按钮将生成的代码复制到您的编辑器中。
+
+使用 `clear` 按钮清除代码以重新开始录制。完成后关闭 Playwright 检查器窗口或停止终端命令。
+
+要了解更多关于生成测试的信息，请查看我们的 Codegen 详细指南。
+
+**生成定位符**
+
+你可以使用测试生成器生成定位符。
+
+- 按下 `Record` 按钮停止录制，'Pick Locator'（选择定位符）按钮将出现。
+- 点击 `Pick Locator` 按钮，然后在浏览器窗口中将鼠标悬停在元素上，以查看在每个元素下方突出显示的定位符。
+- 要选定一个定位符，点击您想要定位的元素，该定位符的代码将出现在选择定位符按钮旁边的定位符乐园中。
+- 然后您可以在定位符乐园中编辑定位符以微调它，并看到浏览器窗口中突出显示的匹配元素。
+- 使用复制按钮复制定位符并将其粘贴到您的代码中。
+
+![img](https://github.com/microsoft/playwright/assets/13063165/2c8a12e2-4e98-4fdd-af92-1d73ae696d86)
+
+
+### 测试配置
+
+Playwright 有许多选项来配置测试的运行方式。你可以在配置文件中指定这些选项。请注意，测试运行器选项是顶层的，不要将它们放入 `use` 部分。
+
+
+所有配置在 `playwright.config.ts` 文件中。
+
+**基本配置**
+
+以下是一些最常见的配置选项。
+
+```ts
+// 从 '@playwright/test' 导入 defineConfig 和 devices  
+import { defineConfig, devices } from '@playwright/test';  
+  
+// 导出默认的配置对象  
+export default defineConfig({  
+  // 在相对于此配置文件的 "tests" 目录中查找测试文件。  **
+  testDir: 'tests',  
+  
+  // 并行运行所有测试。  
+  fullyParallel: true,  
+  
+  // 如果在源代码中不小心留下了 test.only，则在 CI 上构建失败。  
+  forbidOnly: !!process.env.CI,  
+  
+  // 仅在 CI 上重试。  
+  retries: process.env.CI ? 2 : 0,  
+  
+  // 在 CI 上选择不并行测试。  
+  workers: process.env.CI ? 1 : undefined,  
+  
+  // 使用的报告器  **
+  reporter: 'html',   
+  
+  use: {  
+    // 在如 `await page.goto('/')` 的操作中使用的基准 URL。   **
+    baseURL: 'http://127.0.0.1:3000',  
+
+    // 使用给定的存储状态填充上下文。
+    storageState: 'state.json',
+
+    // 在重试失败的测试时收集跟踪信息。  
+    trace: 'on-first-retry',  
+  },
+  // 为主要浏览器配置项目。  
+  projects: [  
+    {  
+      name: 'chromium',  
+      // 使用 'Desktop Chrome' 设备的配置。   **
+      use: { ...devices['Desktop Chrome'] },  
+    },  
+  ],  
+  // 在开始测试之前运行你的本地开发服务器。  
+  webServer: {  
+    // 启动开发服务器的命令。  
+    command: 'npm run start',  
+    // 开发服务器的 URL。  
+    url: 'http://127.0.0.1:3000',  
+    // 在 CI 上不重用现有服务器，在非 CI 环境下重用。  
+    reuseExistingServer: !process.env.CI,  
+  },  
+});
+```
+
+**过滤测试**
+
+按通配符模式或正则表达式过滤测试。
+
+
+```ts
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({  
+  // 用于忽略测试文件的 Glob 模式或正则表达式。  **
+  testIgnore: '*test-assets',  
+
+  // 匹配测试文件的 Glob 模式或正则表达式。  
+  testMatch: '*todo-tests/*.spec.ts',  
+});
+```
+
+**高级配置**
+
+```ts
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({  
+  // 测试生成物（如截图、视频、跟踪等）的文件夹。  
+  outputDir: 'test-results',  
+  
+  // 全局设置文件的路径。  
+  globalSetup: require.resolve('./global-setup'),  
+  
+  // 全局拆解文件的路径。  
+  globalTeardown: require.resolve('./global-teardown'),  
+  
+  // 每个测试被分配 30 秒的时间。  
+  timeout: 30000,  
+  
+});
+```
+
+关于全局的setup/teardown,后面会有详细介绍。
+
+**期望选项**
+
+期望断言库的配置。
+
+```ts
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({  
+  expect: {  
+    // expect() 应该等待条件满足的最大时间。  
+    timeout: 5000,  
+  
+    toHaveScreenshot: {  
+      // 默认未设置，可接受的不同像素的最大数量。  
+      maxDiffPixels: 10,  
+    },  
+  
+    toMatchSnapshot: {  
+      // 与总像素数相比，可接受的不同像素的比率，介于 0 和 1 之间。  
+      maxDiffPixelRatio: 0.1,  
+    },  
+  },  
+  
+});
+```
+
+**模拟选项**
+
+使用 Playwright，你可以模拟真实的设备，例如手机或平板电脑。有关模拟设备的更多信息，请参阅我们的 项目指导。你还可以为所有测试或特定测试模拟 "geolocation"、"locale" 和 "timezone"，以及设置 "permissions" 以显示通知或更改 "colorScheme"。
+
+```ts
+// 从 '@playwright/test' 包中导入 defineConfig 函数，用于定义 Playwright 测试的配置。  
+import { defineConfig } from '@playwright/test';  
+  
+// 导出默认配置对象，该对象通过 defineConfig 函数定义。  
+export default defineConfig({  
+  use: {  
+    // 模拟浏览器对 'prefers-colors-scheme' 媒体特性的支持，设置为暗色模式。  
+    colorScheme: 'dark',  
+  
+    // 模拟地理位置信息，设置经度和纬度。  
+    geolocation: { longitude: 12.492507, latitude: 41.889938 },  
+  
+    // 模拟用户的地区设置，这里设置为中文。  
+    locale: 'zh-CN',  
+  
+    // 为浏览器上下文授予指定的权限，这里仅授予地理位置权限。  
+    permissions: ['geolocation'],  
+  
+    // 模拟用户的时区，这里设置为北京时区。  
+    timezoneId: 'Asia/Shanghai',  
+  
+    // 为上下文中的所有页面设置视口大小，这里宽度为 1280 像素，高度为 720 像素。  
+    viewport: { width: 1280, height: 720 },  
+  },  
+});
+```
+
+**网络选项**
+
+配置网络的可用选项：
+
+```ts
+// 从 '@playwright/test' 包中导入 defineConfig 函数，用于定义 Playwright 测试的配置。  
+import { defineConfig } from '@playwright/test';  
+  
+// 导出默认配置对象，该对象通过 defineConfig 函数定义。  
+export default defineConfig({  
+  use: {  
+    // 是否自动下载所有附件。  
+    acceptDownloads: false,  
+  
+    // 一个对象，包含要与每个请求一起发送的额外HTTP头信息。  
+    extraHTTPHeaders: {  
+      'X-My-Header': 'value', // 示例：添加一个自定义的HTTP头  
+    },  
+  
+    // HTTP身份验证的凭据。  
+    httpCredentials: {  
+      username: 'user', // 用户名  
+      password: 'pass', // 密码  
+    },  
+  
+    // 在导航过程中是否忽略HTTPS错误。  
+    ignoreHTTPSErrors: true,  
+  
+    // 是否模拟网络处于离线状态。  
+    offline: true,  
+  
+    // 测试中所有页面使用的代理设置。  
+    proxy: {  
+      server: '代理网址', // 代理服务器的地址  
+      bypass: 'localhost', // 绕过代理的地址列表，这里以localhost为例  
+    },  
+  },  
+});
+```
+
+**记录选项**
+
+使用 Playwright，你可以捕获屏幕截图、录制视频以及测试痕迹。默认情况下，这些功能是关闭的，但你可以通过在 playwright.config.js 文件中设置 screenshot、video 和 trace 选项来启用它们。
+
+跟踪文件、屏幕截图和视频将出现在测试输出目录中，通常为 test-results。
+
+```ts
+import { defineConfig } from '@playwright/test';  
+  
+// 导出默认配置对象，该对象通过 defineConfig 函数定义。  
+export default defineConfig({  
+  use: {  
+    // 在每个测试失败后捕获屏幕截图。  
+    screenshot: 'only-on-failure',  
+  
+    // 仅在第一次重试测试时记录跟踪信息。  
+    trace: 'on-first-retry',  
+  
+    // 仅在第一次重试测试时录制视频。  
+    video: 'on-first-retry'  
+  },  
+});
+```
+
+**测试环境选项**
+
+Playwright 测试环境的一些基本配置，包括操作超时时间、测试时使用的浏览器、是否绕过内容安全策略、浏览器的特定版本通道、是否以无头模式运行浏览器，以及更改用于测试的默认属性名。这些配置对于控制测试的运行环境和行为非常重要。
+
+```ts
+// 从 '@playwright/test' 包中导入 defineConfig 函数，用于定义 Playwright 测试的配置。  
+import { defineConfig } from '@playwright/test';  
+  
+// 导出默认配置对象，该对象通过 defineConfig 函数定义。  
+export default defineConfig({  
+  use: {
+    // 减慢执行速度。
+    slowMo: 50
+    
+    // 每个操作（如 `click()`）可以执行的最大时间。默认为 0（无限制）。  
+    actionTimeout: 0,  
+  
+    // 运行测试的浏览器名称。例如 `chromium`、`firefox`、`webkit`。  
+    browserName: 'chromium',  
+  
+    // 切换以绕过内容安全策略（Content-Security-Policy）。  
+    bypassCSP: true,  
+  
+    // 要使用的通道，例如 "chrome"、"chrome-beta"、"msedge"、"msedge-beta"。  
+    channel: 'chrome',  
+  
+    // 在无头模式下运行浏览器。  
+    headless: false,  
+  
+    // 更改默认的 data-testid 属性。  
+    testIdAttribute: 'pw-test-id',  
+  },  
+});
+```
+
+**显式上下文创建和选项继承**
+
+如果使用内置的 browser 夹具，调用 browser.newContext() 将创建一个带有从配置继承的选项的上下文：
+
+```ts
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  use: {
+    userAgent: 'some custom ua',
+    viewport: { width: 100, height: 100 },
+  },
+});
+```
+
+如果指定了浏览器，需要在浏览器中配置。
+
+```ts
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+
+  projects: [
+    {
+      name: 'chromium',
+      use: {
+        ...devices['Desktop Chrome'],
+        userAgent: 'some custom ua',
+        viewport: { width: 1920, height: 1080 },
+      },
+    },
+});
+```
+
+说明设置初始上下文选项的示例测试：
+
+```ts
+
+test('should inherit use options on context when using built-in browser fixture', async ({
+  browser,
+}) => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  expect(await page.evaluate(() => navigator.userAgent)).toBe('some custom ua');
+  expect(await page.evaluate(() => window.innerWidth)).toBe(100);
+  await context.close();
+});
+```
+
+### 控制浏览器对象
+
+除了通过运行参数控制浏览器类型和 headless 模式外，这些参数可以在测试中设置。
+
+Playwright 提供了各种对象，如浏览器、上下文、页面等，这些对象都可以用于测试。
+
+```js
+import { test, expect, chromium } from '@playwright/test';
+
+test('browser object', async () => {
+  
+  const browser = await chromium.launch({ headless: false });
+  const context = await browser.newContext();
+  // context.addCookies([cookieObject1, cookieObject2]);
+  const page = await context.newPage();
+  await page.goto('https://playwright.dev');
+  await page.waitForTimeout(2000);
+  
+  await expect(page).toHaveTitle(/Playwright/);
+  
+  await browser.close();
+});
+```
+
+这样的代码，在运行的时候就不需要指定参数了。
+
+```shell
+>  npx playwright test browser-object
+```
+
+### Fixtures
+
+**测试隔离**
+
+Playwright 测试基于测试fixture的概念，例如内置的页面fixture，它被传递到你的测试中。由于浏览器上下文，页面在测试之间是隔离的，这相当于一个全新的浏览器配置文件，每个测试都获得一个新环境，即使多个测试在单个浏览器中运行。
 
 ```typescript
 import { test } from '@playwright/test';
@@ -1382,11 +1786,11 @@ test('another test', async ({ page }) => {
 });
 ```
 
-### 使用测试钩子
+**使用测试钩子**
 
 你可以使用各种测试钩子，例如 `test.describe` 声明一组成组测试，以及 `test.beforeEach` 和 `test.afterEach` 它们在每个测试之前/之后执行。其他钩子包括 `test.beforeAll` 和 `test.afterAll` 它们在每个工作器的所有测试之前/之后执行一次。
 
-tests/example.spec.ts
+tests/fixture.spec.ts
 
 ```typescript
 import { test, expect } from '@playwright/test';
@@ -1413,67 +1817,8 @@ test.describe('navigation', () => {
 });
 ```
 
-### 录制测试
+更多学习：https://playwright.dev/docs/test-fixtures
 
+### 全局的 setup 和 teardown
 
-**Playwright Codegen 简介**
-
-Playwright Codegen（代码生成器）是一个自动生成测试代码的工具，它可以帮助开发者快速编写测试脚本。使用 Codegen，您可以通过录制用户的操作来生成测试代码，这使得编写测试变得更加简单和快捷。
-
-**使用 Codegen 的好处**
-
-- **快速开始**：对于不熟悉 Playwright API 的开发者，使用 Codegen 可以快速生成测试代码。
-- **减少错误**：自动生成的代码减少了手动编写代码时可能出现的错误。
-- **提高效率**：节省编写测试脚本的时间，让开发者可以专注于测试逻辑。
-
-**如何使用 Codegen**
-
-1. **启动 Codegen**：在 Playwright 测试脚本中，使用 `codegen` 命令启动 Codegen。
-2. **录制操作**：执行页面操作，如点击、输入等，这些操作将被 Codegen 录制。
-3. **生成代码**：录制完成后，Codegen 将生成对应的测试代码。
-
-**您将学到：**
-- 如何录制测试。
-- 如何生成定位符。
-
-#### 运行 Codegen
-
-使用 `codegen` 命令运行测试生成器，并接着输入要生成测试的网站的 URL。URL 是可选的，您也可以运行命令时不输入它，然后在浏览器窗口中直接添加 URL。
-
-```bash
-npx playwright codegen demo.playwright.dev/todomvc
-```
-
-#### 录制测试
-
-运行 `codegen` 并在浏览器中执行操作。Playwright 将为用户交互生成代码。`Codegen` 将查看渲染后的页面并找出推荐的定位符，优先考虑角色、文本和测试 ID 定位符。如果生成器识别到多个元素与定位符匹配，它将改进定位符以使其具有弹性并唯一标识目标元素，从而消除和减少因定位符引起的测试失败和不稳定。
-
-您可以使用测试生成器录制：
-
-- 通过简单地与页面交互，录制点击或填写等动作。
-- 通过点击工具栏中的一个图标，然后点击页面上的元素来录制断言。您可以选择：
-  - `'assert visibility'` 断言元素是可见的。
-  - `'assert text'` 断言元素包含特定文本。
-  - `'assert value'` 断言元素具有特定值。
-
-![img](https://github.com/microsoft/playwright/assets/13063165/34a79ea1-639e-4cb3-8115-bfdc78e3d34d)
-
-
-当您完成与页面的交互后，按 `'record'` 按钮停止录制，并使用 `'copy'` 按钮将生成的代码复制到您的编辑器中。
-
-使用 `'clear'` 按钮清除代码以重新开始录制。完成后关闭 Playwright 检查器窗口或停止终端命令。
-
-要了解更多关于生成测试的信息，请查看我们的 Codegen 详细指南。
-
-#### 生成定位符
-
-你可以使用测试生成器生成定位符。
-
-- 按下 `'Record'` 按钮停止录制，'Pick Locator'（选择定位符）按钮将出现。
-- 点击 `'Pick Locator'` 按钮，然后在浏览器窗口中将鼠标悬停在元素上，以查看在每个元素下方突出显示的定位符。
-- 要选定一个定位符，点击您想要定位的元素，该定位符的代码将出现在选择定位符按钮旁边的定位符乐园中。
-- 然后您可以在定位符乐园中编辑定位符以微调它，并看到浏览器窗口中突出显示的匹配元素。
-- 使用复制按钮复制定位符并将其粘贴到您的代码中。
-
-![img](https://github.com/microsoft/playwright/assets/13063165/2c8a12e2-4e98-4fdd-af92-1d73ae696d86)
 
