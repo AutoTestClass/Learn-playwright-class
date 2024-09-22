@@ -1892,7 +1892,7 @@ test('another test', async ({ page }) => {
 
 你可以使用各种测试钩子，例如 `test.describe` 声明一组成组测试，以及 `test.beforeEach` 和 `test.afterEach` 它们在每个测试之前/之后执行。其他钩子包括 `test.beforeAll` 和 `test.afterAll` 它们在每个工作器的所有测试之前/之后执行一次。
 
-tests/fixture.spec.ts
+* 简单示例：`fixture.spec.ts`
 
 ```typescript
 import { test, expect } from '@playwright/test';
@@ -1919,7 +1919,184 @@ test.describe('navigation', () => {
 });
 ```
 
-更多学习：https://playwright.dev/docs/test-fixtures
+结合Page object 设计模式，更具体的例子。
+
+* 定义page层，`todo-page.ts`
+
+```ts
+import type { Page, Locator } from '@playwright/test';
+
+export class TodoPage {
+  private readonly inputBox: Locator;
+  private readonly todoItems: Locator;
+
+  constructor(public readonly page: Page) {
+    this.inputBox = this.page.locator('input.new-todo');
+    this.todoItems = this.page.getByTestId('todo-item');
+  }
+
+  async goto() {
+    await this.page.goto('https://demo.playwright.dev/todomvc/');
+  }
+
+  async addToDo(text: string) {
+    await this.inputBox.fill(text);
+    await this.inputBox.press('Enter');
+  }
+
+  async remove(text: string) {
+    const todo = this.todoItems.filter({ hasText: text });
+    await todo.hover();
+    await todo.getByLabel('Delete').click();
+  }
+
+  async removeAll() {
+    while ((await this.todoItems.count()) > 0) {
+      await this.todoItems.first().hover();
+      await this.todoItems.getByLabel('Delete').first().click();
+    }
+  }
+}
+```
+
+* 测试用例，`todo-hooks.spec.ts`
+
+```ts
+const { test } = require('@playwright/test');
+const { TodoPage } = require('./todo-page');
+
+test.describe('todo tests', () => {
+  let todoPage;
+
+  test.beforeEach(async ({ page }) => {
+    todoPage = new TodoPage(page);
+    await todoPage.goto();
+    await todoPage.addToDo('item1');
+    await todoPage.addToDo('item2');
+  });
+
+  test.afterEach(async () => {
+    await todoPage.removeAll();
+  });
+
+  test('should add an item', async () => {
+    await todoPage.addToDo('my item');
+    // ...
+  });
+
+  test('should remove an item', async () => {
+    await todoPage.remove('item1');
+    // ...
+  });
+});
+```
+
+**使用Fixtures**
+
+与`beforeEach`/`afterEach`钩子相比，Fixtures具有许多优点：
+
+* Fixtures 将设置和拆卸封装在同一个地方，因此更容易编写。
+
+* Fixtures可以在测试文件之间重复使用 - 你可以定义它们一次并在所有测试中使用。这就是 Playwright 的内置 page 装置的工作原理。
+
+* Fixtures按需提供 - 你可以根据需要定义任意数量的夹具，Playwright Test 将仅设置测试所需的Fixtures，而不会设置其他任何Fixtures。
+
+* Fixtures是可组合的 - 它们可以相互依赖来提供复杂的行为。
+
+* Fixtures灵活。测试可以使用夹具的任意组合来定制所需的精确环境，而不会影响其他测试。
+
+* Fixtures简化了分组。你不再需要将测试封装在设置环境的 describe 中，而是可以根据测试的含义自由地对其进行分组。
+
+
+* 测试用例，`todo-fixture.spec.ts`
+
+```ts
+import { test as base } from '@playwright/test';
+import { TodoPage } from './todo-page';
+
+// Extend basic test by providing a "todoPage" fixture.
+const test = base.extend<{ todoPage: TodoPage }>({
+  todoPage: async ({ page }, use) => {
+    const todoPage = new TodoPage(page);
+    await todoPage.goto();
+    await todoPage.addToDo('item1');
+    await todoPage.addToDo('item2');
+
+    await use(todoPage);
+    
+    await todoPage.removeAll();
+  },
+});
+
+test('should add an item', async ({ todoPage }) => {
+  await todoPage.addToDo('my item');
+  // ...
+});
+
+test('should remove an item', async ({ todoPage }) => {
+  await todoPage.remove('item1');
+  // ...
+});
+```
+
+**自定义Fixtures**
+
+要创建你自己的夹具，请使用 test.extend() 创建一个包含它的新 test 对象。
+
+* 创建fixture，`my-test.ts`
+
+```ts
+import { test as base } from '@playwright/test';
+import { TodoPage } from './page/todo-page';
+import { SettingsPage } from './page/settings-page';
+
+// Declare the types of your fixtures.
+type MyFixtures = {
+  todoPage: TodoPage;
+  settingsPage: SettingsPage;
+};
+
+// Extend base test by providing "todoPage" and "settingsPage".
+// This new "test" can be used in multiple test files, and each of them will get the fixtures.
+export const test = base.extend<MyFixtures>({
+  todoPage: async ({ page }, use) => {
+    // Set up the fixture.
+    const todoPage = new TodoPage(page);
+    await todoPage.goto();
+    await todoPage.addToDo('item1');
+    await todoPage.addToDo('item2');
+
+    // Use the fixture value in the test.
+    await use(todoPage);
+
+    // Clean up the fixture.
+    await todoPage.removeAll();
+  },
+
+  settingsPage: async ({ page }, use) => {
+    await use(new SettingsPage(page));
+  },
+});
+
+export { expect } from '@playwright/test';
+```
+
+只需在测试函数参数中提及夹具，测试运行程序就会处理它。夹具还有钩子和其他夹具。如果你使用 TypeScript，灯具将具有正确的类型。
+
+```ts
+import { test, expect } from './my-test';
+
+test.beforeEach(async ({ settingsPage }) => {
+  await settingsPage.switchToDarkMode();
+});
+
+test('basic test', async ({ todoPage, page }) => {
+  await todoPage.addToDo('something nice');
+  await expect(page.getByTestId('todo-title')).toContainText(['something nice']);
+});
+```
+
+更多使用：https://playwright.dev/docs/test-fixtures
 
 ### 全局的 setup 和 teardown
 
