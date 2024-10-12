@@ -7,6 +7,8 @@ export class PlaywrightDevPage {
   readonly pomLink: Locator;
   readonly tocList: Locator;
 
+
+  // 元素定位  -- 业务逻辑层  --- 用例层 
   constructor(page: Page) {
     this.page = page;
     this.getStartedLink = page.locator('a', { hasText: 'Get started' });

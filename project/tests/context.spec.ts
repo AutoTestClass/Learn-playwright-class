@@ -7,8 +7,9 @@ test('should inherit use options on context when using built-in browser fixture'
   const page = await context.newPage();
   await page.goto('https://playwright.dev');
   await page.waitForTimeout(3000);
-  console.log('sss', await page.evaluate(() => navigator.userAgent))
-  console.log('sss', await page.evaluate(() => window.innerWidth))
+  console.log('userAgent', await page.evaluate(() => navigator.userAgent))
+  console.log('windowWidth', await page.evaluate(() => window.innerWidth))
+  console.log('windowHight', await page.evaluate(() => window.innerHeight))
 
   expect(await page.evaluate(() => navigator.userAgent)).toBe('some custom ua');
   expect(await page.evaluate(() => window.innerWidth)).toBe(1920);
