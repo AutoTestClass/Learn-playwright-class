@@ -13,19 +13,22 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './tests',
   /* Run tests in files in parallel */
-  fullyParallel: true,
+  fullyParallel: false,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
-  retries: process.env.CI ? 2 : 0,
+  retries: 0,
   /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
+  workers: 2,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'html',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
+  
+  // testMatch: 'todo-fixture*.spec.ts',
+
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    // baseURL: 'http://127.0.0.1:3000',
+    baseURL: 'https://playwright.dev',
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
@@ -42,18 +45,34 @@ export default defineConfig({
     // 关闭无头模式
     headless: false,  
 
+    // 暗黑/高亮模式
     colorScheme: 'dark', 
+
   },
+
+  // 全局 setup & teardown
+  // globalSetup: './global-setup',
+  // globalTeardown: './global-teardown',
 
   /* Configure projects for major browsers */
   projects: [
+    // {
+    //   name: 'setup db',
+    //   testMatch: /global\.setup\.ts/,
+    //   teardown: 'cleanup db',
+    // },
+    // {
+    //   name: 'cleanup db',
+    //   testMatch: /global\.teardown\.ts/,
+    // },
     {
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-        // userAgent: 'some custom ua',
-        // viewport: { width: 1920, height: 1080 },
+        userAgent: 'some custom ua',
+        viewport: { width: 1920, height: 1080 },
       },
+      // dependencies: ['setup db'],
     },
 
     // {
