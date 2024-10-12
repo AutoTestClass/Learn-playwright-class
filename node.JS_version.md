@@ -2415,11 +2415,293 @@ allure open .\allure-report
 
 ### 视觉比较
 
-https://playwright.nodejs.cn/docs/test-snapshots
+Playwright 测试包括使用 await expect(page).toHaveScreenshot() 生成和直观比较屏幕截图的能力。首次执行时，Playwright 测试将生成参考屏幕截图。后续运行将与参考进行比较。
+
+```ts
+import { test, expect } from '@playwright/test';
+
+test('example test', async ({ page }) => {
+  await page.goto('https://playwright.dev');
+  await page.waitForTimeout(1000);
+  await expect(page).toHaveScreenshot();
+});
+```
+
+__生成屏幕截图__
+
+当你第一次运行上面时，测试运行程序会说：
+
+> Error: A snapshot doesn't exist at example.spec.ts-snapshots/example-test-1-chromium-darwin.png, writing actual.
+
+那是因为还没有生成基准对比截图。该方法获取一堆屏幕截图，直到两个连续的屏幕截图匹配，并将最后一个屏幕截图保存到文件系统。现在已准备好将其添加到存储库中。
+
+程序会在`tests`测试用例目录下生成一个`xxx-snapshots`文件夹，里面包含所有生成的截图。
+
+例如：`tests\visual-compare.spec.ts-snapshots\example-test-1-chromium-win32.png`
+
+* `visual-compare.spec.ts`: 对应的用例文件的名称。
+* `-snapshots`: 固定后缀
+* `example-test`: 文件中测试用例的固定前缀。
+* `-1`: 文件中用例的编号，第几个。
+* `-chromium-win32`: 运行的浏览器类型。
+
+__生成截图的选项__
+
+Playwright Test 使用 pixelmatch 库。你可以通过 通过各种选项 来修改其行为：
+
+`maxDiffPixels` 设置可接受的像素数量，可能有所不同。
+
+```ts
+import { test, expect } from '@playwright/test';
+
+test('example test', async ({ page }) => {
+  await page.goto('https://playwright.nodejs.cn');
+  await expect(page).toHaveScreenshot({ maxDiffPixels: 100 });
+});
+```
+
+你可以在截屏时将自定义样式表应用到页面。这允许过滤掉动态或易失性元素，从而提高屏幕截图的确定性。
+
+* 自定义screenshot.css文件
+
+```css
+iframe {
+  visibility: hidden;
+}
+```
+
+* 在测试中传递自定义样式表路径
+
+```ts
+import { test, expect } from '@playwright/test';
+
+test('example test', async ({ page }) => {
+  await page.goto('https://playwright.nodejs.cn');
+  await expect(page).toHaveScreenshot({ stylePath: path.join(__dirname, 'screenshot.css') });
+});
+```
+
+* 在 `playwright.config.ts` 中配置:
+
+每个测试用例都配置过于繁琐，可以在配置文件中统一配置。
+
+```ts
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  expect: {
+    toHaveScreenshot: {
+      maxDiffPixels: 100,
+      stylePath: './screenshot.css'
+    },
+  },
+});
+```
+
+查看更多：https://playwright.dev/docs/test-snapshots
 
 
-### 模拟API测试
+### API测试
 
-https://playwright.nodejs.cn/docs/network
+Playwright 可用于访问应用的 REST API。
+
+有时你可能希望直接从 Node.js 向服务器发送请求，而不需要加载页面并在其中运行 js 代码。一些它可能派上用场的例子：
+
+* 测试你的服务器 API。
+* 在测试中访问 Web 应用之前准备服务器端状态。
+* 在浏览器中运行某些操作后验证服务器端后置条件。
+
+所有这些都可以通过 APIRequestContext 方法来实现。
+
+#### 编写 API 测试
+
+Playwright Test 附带内置 request 装置，它尊重我们指定的 baseURL 或 extraHTTPHeaders 等配置选项，并准备发送一些请求。
+
+现在我们可以添加一些测试，这些测试将在存储库中创建新问题。
+
+```ts
+import { test, expect } from '@playwright/test';
+
+test('api test get', async ({ request }) => {
+
+  const resp = await request.get(`https://httpbin.org/get`, {
+    params: {  
+      id: 1,  
+      name: 'jack',  
+    },
+  });
+  
+  expect(resp.ok()).toBeTruthy();
+  const respBody = await resp.json();  
+  console.log(respBody);
+  expect(respBody).toEqual(expect.objectContaining({  
+    args: { id: '1', name: 'jack' } 
+  }));
+});
+
+test('api test post-data', async ({ request }) => {
+  const resp = await request.post(`https://httpbin.org/post`, {
+    form: {
+      title: 'title',
+      body: 'body',
+    }
+  });
+  expect(resp.ok()).toBeTruthy();
+
+  const respBody = await resp.json();  
+  console.log(respBody);
+  
+  expect(respBody).toEqual(expect.objectContaining({  
+    form: {
+      title: 'title',
+      body: 'body',  
+    },  
+  }));
+
+});
+
+test('api test post-json', async ({ request }) => {
+
+  const resp = await request.post(`https://httpbin.org/post`, {
+    headers: {  
+      'Content-Type': 'application/json',  
+    },  
+    data: {  
+      title: 'test title',  
+      body: 'test body',  
+    }, 
+  });
+  expect(resp.ok()).toBeTruthy();
+  
+  const respBody = await resp.json();  
+  console.log(respBody);
+  
+  expect(respBody).toEqual(expect.objectContaining({  
+    json: {
+      title: 'test title',
+      body: 'test body',
+    },    
+  }));
+
+});
+```
+
+示例包含了：
+
+* 不同请求方法：`get()`/`post()`。
+* 参数类型：``params`/`form`/`data`。
+* 获取的响应状态码和数据：`resp.ok()`/`resp.json()`。
+* 断言返回结果：`expect.objectContaining()`。
 
 
+#### 更多使用
+
+__全局配置__
+
+我们将设置 baseURL 以简化测试。你可以将它们放入配置文件中，也可以将它们放入带有 test.use() 的测试文件中。
+
+* 配置`baseURL` 和 `header`
+
+```ts
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  use: {
+    // All requests we send go to this API endpoint.
+    baseURL: 'https://api.github.com',
+    extraHTTPHeaders: {
+      // We set this header per GitHub guidelines.
+      'Accept': 'application/vnd.github.v3+json',
+      // Add authorization token to all requests.
+      // Assuming personal access token available in the environment.
+      'Authorization': `token ${process.env.API_TOKEN}`,
+    },
+  }
+});
+```
+
+* 配置代理
+
+```ts
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  use: {
+    proxy: {
+      server: 'http://my-proxy:8080',
+      username: 'user',
+      password: 'secret'
+    },
+  }
+});
+```
+
+__Setup 和 Teardown__
+
+这些测试假设存储库存在。你可能想在运行测试之前创建一个新的测试，然后将其删除。为此使用`beforeAll` 和 `afterAll` 钩子。
+
+```ts
+import { test, expect } from '@playwright/test';
+
+// 全局变量用于存储请求上下文
+let apiReqContext; 
+
+
+test.beforeAll(async ({ playwright }) => {
+  // 初始化 API 请求上下文
+  apiReqContext = await playwright.request.newContext({
+    baseURL: 'https://httpbin.org',
+    extraHTTPHeaders: {
+      'Authorization': 'Bearer your-token' // 设置全局请求头，例如身份验证
+    }
+  });
+  console.log('beforeAll: 初始化 API 请求上下文');
+});
+
+test.afterAll(async () => {
+  // 清理请求上下文
+  await apiReqContext.dispose();
+  console.log('afterAll: 清理 API 请求上下文');
+});
+```
+
+__请求上下文__
+
+在幕后，`request`实际上会调用 `apiRequest.newContext()`。如果你想要更多控制权，你可以随时手动执行此操作。下面是一个独立脚本，其作用与上面的 beforeAll 和 afterAll 相同。
+
+```ts
+import { test, expect } from '@playwright/test';
+
+test('测试 - context', async ({ playwright }) => {
+
+  const context = await playwright.request.newContext({
+    baseURL: 'https://httpbin.org',
+  });
+
+  // Create a repository.
+  const resp1 = await context.post('/post', {
+    headers: {
+      'Accept': 'application/vnd.github.v3+json',
+      'Authorization': `token 123`,
+    },
+    data: {
+      name: "jack"
+    }
+  });
+  expect(resp1.ok()).toBeTruthy();
+  const responseBody = await resp1.json();
+  console.log(responseBody);
+
+  // Delete a repository.
+  const resp2 = await context.delete(`/delete`, {
+    headers: {
+      'Accept': 'application/vnd.github.v3+json',
+    }
+  });
+  expect(resp2.ok()).toBeTruthy();
+  const responseBody2 = await resp2.json();
+  console.log(responseBody2);
+});
+```
+
+查看更多：https://playwright.dev/docs/api-testing
