@@ -1362,11 +1362,10 @@ test('baidu advanced search setting', async ({ page }) => {
 });
 ```
 
-## playwright测试
+## playwright更多使用
 
 
 ### 录制测试
-
 
 **Playwright Codegen 简介**
 
@@ -2099,5 +2098,328 @@ test('basic test', async ({ todoPage, page }) => {
 更多使用：https://playwright.dev/docs/test-fixtures
 
 ### 全局的 setup 和 teardown
+
+
+有两种方法可以配置全局设置和拆卸：
+1. 在全局设置文件中设置 `globalSetup` 和 `globalTeardown`。
+2. 在全局设置文件中使用 项目依赖（`testProject.testMatch`）。
+
+#### 项目依赖
+
+通过项目依赖，你可以定义一个在所有其他项目之前运行的项目。这是配置全局设置的推荐方法，因为项目依赖你的 HTML 报告将显示全局设置，跟踪查看器将记录设置的跟踪，并且可以使用夹具。
+
+* 创建`tests/global/global-setup.ts`文件，添加代码：
+
+```ts
+import { test as setup } from '@playwright/test';
+
+setup('create new database', async ({ }) => {
+  console.log('creating new database...');
+  // Initialize the database
+});
+```
+
+* 创建`tests/global/global-teardown.ts`文件，添加代码：
+
+```ts
+import { test as setup } from '@playwright/test';
+
+setup('create new database', async ({ }) => {
+  console.log('creating new database...');
+  // Initialize the database
+});
+```
+
+* 在`playwright.config.ts`中添加如下配置：
+
+```ts
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  testDir: './tests',
+  // ...
+  projects: [
+    {
+      name: 'setup db',
+      testMatch: /global\.setup\.ts/,
+      teardown: 'cleanup db',  // 设置 teardown
+    },
+    {
+      name: 'cleanup db',
+      testMatch: /global\.teardown\.ts/,
+    },
+    {
+      name: 'chromium',
+      use: {
+        ...devices['Desktop Chrome'],
+        userAgent: 'some custom ua',
+        viewport: { width: 1920, height: 1080 },
+      },
+      dependencies: ['setup db'],  // 依赖于 setup db
+    },
+    ]
+});
+```
+
+在此示例中，`chromium` 项目依赖于 `setup db` 项目。然后，我们创建一个设置测试，存储在项目的根级别（请注意，设置和拆卸代码必须通过调用 test() 函数定义为常规测试）：
+
+* 执行用例
+
+```shell
+npx playwright test example
+```
+
+* 查看报告
+
+![](./images/report-setup.png)
+
+
+#### 配置 globalSetup 和 globalTeardown
+
+你可以在运行所有测试之前使用 配置文件 中的 `globalSetup` 选项进行一次设置。全局设置文件必须导出一个采用配置对象的函数。该函数将在所有测试之前运行一次。
+
+同样，在所有测试之后使用 `globalTeardown` 运行一次。或者，让 globalSetup 返回一个将用作全局拆卸的函数。你可以使用环境变量将端口号、身份验证令牌等数据从全局设置传递到测试。
+
+> 注意：使用 `globalSetup` 和 `globalTeardown` 不会产生痕迹或伪影，配置文件中指定的选项（如 headless 或 testIdAttribute）不适用。如果你想要生成跟踪和工件并尊重配置选项，请使用 项目依赖。
+
+* 在`playwright.config.ts`中添加如下配置：
+
+```ts
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  globalSetup: './global-setup',
+  globalTeardown: './global-teardown',
+});
+```
+> 注：此处与官方文档有出入，经过验证不需要`require.resolve('./global-setup')` 和 `require.resolve('./global-teardown')`。
+
+* 在项目的根没记录下创建`global-setup.ts`和`global-teardown.ts`文件，添加如下代码：
+
+```ts
+import { chromium, type FullConfig } from '@playwright/test';
+
+async function globalSetup(config: FullConfig) {
+  const { baseURL, storageState } = config.projects[0].use;
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+  await page.goto(baseURL!);
+  await console.log('Global setup', baseURL, storageState);
+  await browser.close();
+}
+
+export default globalSetup;
+```
+
+> 注：这里的 playwright 测试代码保持完整性。默认不使用 playwright.config.ts 中的配置。
+
+更多使用：https://playwright.dev/docs/test-global-setup-teardown
+
+### 测试报告配置
+
+Playwright Test 附带了一些内置报告器，可满足不同的需求并能够提供自定义报告器。
+
+尝试控制内置报告器的最简单方法是传递 `--reporter` 命令行选项。
+
+```shell
+npx playwright test --reporter=line
+```
+
+为了获得更多控制，你可以在 `playwright.config.ts` 文件中以编程方式指定报告器。
+
+```ts
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  reporter: 'line',
+});
+```
+
+#### playwrigh 支的报告类型
+
+__列表报告器__
+
+列表报告器是默认值（CI 上除外，其中 dot 报告器是默认值）。它为每个正在运行的测试打印一行。
+
+```shell
+npx playwright test example --reporter=list
+
+Running 2 tests using 1 worker
+
+  ✓  1 [chromium] › example.spec.ts:3:1 › has title (3.5s)
+  ✓  2 [chromium] › example.spec.ts:10:1 › get started link (3.7s)
+
+  2 passed (9.2s)
+```
+
+
+__线报告器__
+
+线报告器比名单报告器更简洁。它使用一行来报告最后完成的测试，并在发生故障时打印故障。行报告器对于大型测试套件非常有用，它显示进度，但不会通过列出所有测试来垃圾邮件输出。
+
+```shell
+npx playwright test example --reporter=line
+
+Running 2 tests using 1 worker
+  2 passed (10.7s)
+```
+
+
+__点报告器__
+
+点报告器非常简洁 - 每次成功的测试运行只会产生一个字符。这是 CI 上的默认设置，在你不需要大量输出的情况下很有用。
+
+```shell
+npx playwright test example --reporter=dot
+
+Running 2 tests using 1 worker
+··
+  2 passed (9.2s)
+```
+
+__HTML报告器__
+
+点报告器非常简洁 - 每次成功的测试运行只会产生一个字符。这是 CI 上的默认设置，在你不需要大量输出的情况下很有用。
+
+```shell
+npx playwright test example --reporter=html
+```
+
+* 在 `playwright.config.ts` 中，可以实现更多的配置。
+
+```ts
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  reporter:  [['html', { open: 'always', outputFolder: 'test-results' }]],
+});
+```
+
+__Blob报告器__
+
+Blob 报告包含有关测试运行的所有详细信息，稍后可用于生成任何其他报告。它们的主要功能是促进 分片测试 报告的合并。
+
+```shell
+npx playwright test --reporter=blob
+```
+
+默认情况下，报告写入 package.json 目录或当前工作目录中的 `blob-report` 目录（如果未找到 package.json）。当使用 sharding 时，报告文件名看起来像 `report-<hash>.zip` 或 `report-<hash>-<shard_number>.zip`。
+
+* 在 `playwright.config.ts` 中，可以实现更多的配置。
+
+```ts
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  reporter: [['blob', { outputFile: `./blob-report/report-${os.platform()}.zip` }]],
+});
+```
+
+__JSON 报告器__
+
+JSON 报告器生成一个包含有关测试运行的所有信息的对象。
+
+```shell
+ npx playwright test --reporter=json
+```
+
+在配置文件中，直接传递选项：
+
+```ts
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  reporter: [['json', { outputFile: 'results.json' }]],
+});
+```
+
+__JUnit 报告器__
+
+JUnit 报告器生成 JUnit 样式的 xml 报告。
+
+```shell
+npx playwright test --reporter=junit
+```
+
+在配置文件中，直接传递选项：
+
+```ts
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  reporter: [['junit', { outputFile: 'results.xml' }]],
+});
+```
+
+__多名报告器__
+
+你可以同时使用多个报告器。例如，你可以使用 'list' 获得良好的终端输出，使用 'json' 获取包含测试结果的综合 json 文件。
+
+```ts
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  reporter: [
+    ['list'],
+    ['json', {  outputFile: 'test-results.json' }]
+  ],
+});
+```
+
+### 第三方报告
+
+playwright支持第三方报告，如`allure`, `Argos 视觉测试`, `GitHub Actions` 报告器 等
+
+__allure使用__
+
+https://www.npmjs.com/package/allure-playwright
+
+* 安装allure相关库
+
+```
+npm i allure-playwright
+```
+
+* 运行指定报告类型
+
+```ts
+npx playwright test --reporter=allure-playwright
+```
+
+* 在`playwright.config.ts`中配置
+
+```ts
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  reporter: "allure-playwright",
+});
+```
+
+* 启动allure服务
+
+```shell
+allure serve .\allure-results\
+```
+
+* 生成并打开报告文件
+
+```shell
+allure serve .\allure-results\ -o .\allure-report
+allure open .\allure-report
+```
+
+> 注：以上目录为Windows 系统，其他系统请自行转换。
+
+更多使用：https://playwright.nodejs.cn/docs/test-reporters
+
+### 视觉比较
+
+https://playwright.nodejs.cn/docs/test-snapshots
+
+
+### 模拟API测试
+
+https://playwright.nodejs.cn/docs/network
 
 
