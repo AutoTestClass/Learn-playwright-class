@@ -1,0 +1,21 @@
+[ {
+  "uid" : "67828cbc10e73e20",
+  "name" : "get started link",
+  "time" : {
+    "start" : 1728734446970,
+    "stop" : 1728734450809,
+    "duration" : 3839
+  },
+  "status" : "passed",
+  "severity" : "normal"
+}, {
+  "uid" : "d54576f36a1e95f0",
+  "name" : "has title",
+  "time" : {
+    "start" : 1728734441264,
+    "stop" : 1728734446217,
+    "duration" : 4953
+  },
+  "status" : "passed",
+  "severity" : "normal"
+} ]

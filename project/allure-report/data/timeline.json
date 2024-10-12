@@ -1,0 +1,39 @@
+{
+  "uid" : "ab17fc5a4eb3bca4b216b548c7f9fcbc",
+  "name" : "timeline",
+  "children" : [ {
+    "name" : "LAPTOP-29068220",
+    "children" : [ {
+      "name" : "pid-1908-worker-0",
+      "children" : [ {
+        "name" : "has title",
+        "uid" : "d54576f36a1e95f0",
+        "parentUid" : "0a8209ff5f90697d5bd0566a4bc32aec",
+        "status" : "passed",
+        "time" : {
+          "start" : 1728734441264,
+          "stop" : 1728734446217,
+          "duration" : 4953
+        },
+        "flaky" : false,
+        "newFailed" : false,
+        "parameters" : [ "chromium" ]
+      }, {
+        "name" : "get started link",
+        "uid" : "67828cbc10e73e20",
+        "parentUid" : "0a8209ff5f90697d5bd0566a4bc32aec",
+        "status" : "passed",
+        "time" : {
+          "start" : 1728734446970,
+          "stop" : 1728734450809,
+          "duration" : 3839
+        },
+        "flaky" : false,
+        "newFailed" : false,
+        "parameters" : [ "chromium" ]
+      } ],
+      "uid" : "0a8209ff5f90697d5bd0566a4bc32aec"
+    } ],
+    "uid" : "37d977a6f7f6dce398f1e3ba5b7c2acb"
+  } ]
+}

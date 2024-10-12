@@ -1,0 +1,39 @@
+{
+  "uid" : "98d3104e051c652961429bf95fa0b5d6",
+  "name" : "suites",
+  "children" : [ {
+    "name" : "chromium",
+    "children" : [ {
+      "name" : "example.spec.ts",
+      "children" : [ {
+        "name" : "has title",
+        "uid" : "d54576f36a1e95f0",
+        "parentUid" : "e4b544034979f0ed71670fbfdd0e6370",
+        "status" : "passed",
+        "time" : {
+          "start" : 1728734441264,
+          "stop" : 1728734446217,
+          "duration" : 4953
+        },
+        "flaky" : false,
+        "newFailed" : false,
+        "parameters" : [ "chromium" ]
+      }, {
+        "name" : "get started link",
+        "uid" : "67828cbc10e73e20",
+        "parentUid" : "e4b544034979f0ed71670fbfdd0e6370",
+        "status" : "passed",
+        "time" : {
+          "start" : 1728734446970,
+          "stop" : 1728734450809,
+          "duration" : 3839
+        },
+        "flaky" : false,
+        "newFailed" : false,
+        "parameters" : [ "chromium" ]
+      } ],
+      "uid" : "e4b544034979f0ed71670fbfdd0e6370"
+    } ],
+    "uid" : "36c900977e1d8b81a2c6893cc82bfc01"
+  } ]
+}
